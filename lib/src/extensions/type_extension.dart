@@ -5,7 +5,6 @@ import 'package:dart_core_orm/src/orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 extension TypeExtension on Type {
-
   ChainedQuery _toChainedQuery() {
     final query = this is ChainedQuery ? this as ChainedQuery : ChainedQuery()
       .._type = this;
@@ -15,17 +14,15 @@ extension TypeExtension on Type {
   ChainedQuery select([List<String>? paramsNames]) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    query.add('SELECT ');
+    query.add('SELECT');
     if (paramsNames?.isNotEmpty != true) {
       query.add('*');
     } else {
       query.add(paramsNames!.join(', '));
     }
-    query.add(' FROM $tableName');
+    query.add('FROM $tableName');
     return query;
   }
-
-
 
   bool isSubclassOf<T>() {
     final classMirror = reflectType(this) as ClassMirror;
@@ -55,10 +52,52 @@ class ChainedQuery {
     _parts.add(part);
   }
 
+  ChainedQuery where(List<WhereOperation> operations) {
+    if (operations.isEmpty) {
+      return this;
+    }
+    add('WHERE');
+    add(operations.map((e) => e.toOperation()).join(' AND ').trim());
+    return this;
+  }
+
   Future<List> execute() async {
-    final List mappedResult = await orm?.executeSimpleQuery(query: '${_parts.join()};') as List? ?? [];
+    final List mappedResult = await orm?.executeSimpleQuery(query: '${_parts.join(' ')};') as List? ?? [];
     return mappedResult.map((e) {
       return _type!.fromJson(e);
     }).toList();
   }
+}
+
+class WhereOperation {
+  WhereOperation({
+    required this.key,
+    required this.value,
+    required this.operation,
+  });
+
+  /// column name
+  final String key;
+
+  /// the value to compare with
+  final Object value;
+  final WhereOperationType operation;
+
+  String toOperation() {
+    final valueRepresentation = value is String ? '\'$value\'' : value;
+    return '$key ${operation.operation} $valueRepresentation';
+  }
+}
+
+enum WhereOperationType {
+  equal('='),
+  notEqual('!='),
+  less('<'),
+  greater('>'),
+  lessOrEqual('<='),
+  greaterOrEqual('>=');
+
+  final String operation;
+
+  const WhereOperationType(this.operation);
 }

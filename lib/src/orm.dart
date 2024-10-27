@@ -4,13 +4,12 @@ Orm? _orm;
 Orm? get orm => _orm;
 
 class Orm {
-
   Orm._({
     required this.host,
     required this.database,
-    required this.password,    
-    required this.username,    
-    required this.family,    
+    required this.password,
+    required this.username,
+    required this.family,
     required this.isSecureConnection,
   }) {
     if (family == DatabaseFamily.postgres) {
@@ -86,8 +85,8 @@ class Orm {
               final map = {};
               for (var j = 0; j < row.length; j++) {
                 map[keys[j]] = row[j];
-                list.add(map);
               }
+              list.add(map);
             }
           }
           return list;

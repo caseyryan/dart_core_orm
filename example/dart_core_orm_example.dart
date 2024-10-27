@@ -4,21 +4,6 @@ import 'package:dart_core_orm/src/orm.dart';
 import 'dude.dart';
 
 Future main() async {
-  // final conn = await Connection.open(
-  //     Endpoint(
-  //       host: 'localhost',
-  //       database: 'postgres',
-  //       username: 'postgres',
-  //       password: '',
-  //     ),
-  //     settings: ConnectionSettings(
-  //       sslMode: SslMode.disable,
-  //     ));
-  // var result = await conn.execute(
-  //   'CREATE TABLE IF NOT EXISTS dudes (id SERIAL PRIMARY KEY, name TEXT)',
-  //   queryMode: QueryMode.extended,
-  // );
-  // print(conn);
   Orm.initialize(
     database: 'postgres',
     username: 'postgres',
@@ -35,7 +20,18 @@ Future main() async {
   final dude = Dude()..name = 'John';
 
   // final result = await (Dude).select(['name']).execute();
-  final result = await (Dude).select().execute();
+  // final result = await (Dude).select().execute();
+  final result = await (Dude).select().where([
+    WhereOperation(
+      key: 'name',
+      value: 'John',
+      operation: WhereOperationType.equal,
+    ),
+    WhereOperation(
+      key: 'id',
+      value: 1,
+      operation: WhereOperationType.equal,
+    ),
+  ]).execute();
   print(result);
-
 }
