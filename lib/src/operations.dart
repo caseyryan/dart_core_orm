@@ -1,4 +1,3 @@
-
 /// Where operations
 library;
 
@@ -60,14 +59,21 @@ class InList extends WhereOperation {
   InList({
     required super.key,
     required List<Object?> value,
-  }) : super(operation: WhereOperationType.inList, value: value);
+  }) : super(
+          operation: WhereOperationType.inList,
+          value: value,
+        );
 }
 
 class Between extends WhereOperation {
   Between({
     required super.key,
     required List<Object> value,
-  }) : super(
+  })  : assert(
+          value.length == 2,
+          'Between operation requires two values',
+        ),
+        super(
           operation: WhereOperationType.between,
           value: value,
         );
