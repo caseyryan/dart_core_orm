@@ -4,12 +4,13 @@ Orm? _orm;
 Orm? get orm => _orm;
 
 class Orm {
-  Orm({
+
+  Orm._({
     required this.host,
     required this.database,
-    required this.password,
-    required this.username,
-    required this.family,
+    required this.password,    
+    required this.username,    
+    required this.family,    
     required this.isSecureConnection,
   }) {
     if (family == DatabaseFamily.postgres) {
@@ -24,6 +25,24 @@ class Orm {
       );
     }
     _orm = this;
+  }
+
+  factory Orm.initialize({
+    required String host,
+    required String database,
+    required String password,
+    required String username,
+    required DatabaseFamily family,
+    required bool isSecureConnection,
+  }) {
+    return Orm._(
+      host: host,
+      database: database,
+      password: password,
+      username: username,
+      family: family,
+      isSecureConnection: isSecureConnection,
+    );
   }
 
   final String host;

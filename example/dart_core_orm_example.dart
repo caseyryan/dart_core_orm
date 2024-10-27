@@ -19,7 +19,7 @@ Future main() async {
   //   queryMode: QueryMode.extended,
   // );
   // print(conn);
-  Orm(
+  Orm.initialize(
     database: 'postgres',
     username: 'postgres',
     password: '',

@@ -9,12 +9,13 @@ This library is based on reflections and will not work with AOT compilation.
 ## Getting Started
 
 Initialize the library somewhere in the beginning of your program
-Basically that's all you need. 
+Basically that's all you need. You don't even have to assign it to any variable 
+since internally is is assigned and will be used by the ORM library on its own
 
 ```dart
 import 'package:dart_core_orm/dart_core_orm.dart';
 
-Orm(
+Orm.initialize(
   database: 'postgres',
   username: 'postgres',
   password: '',
