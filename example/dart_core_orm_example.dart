@@ -1,4 +1,4 @@
-import 'package:dart_core_orm/src/extensions/type_extension.dart';
+import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:dart_core_orm/src/orm.dart';
 
 import 'dude.dart';
@@ -20,17 +20,14 @@ Future main() async {
   final dude = Dude()..name = 'John';
 
   // final result = await (Dude).select(['name']).execute();
-  // final result = await (Dude).select().execute();
   final result = await (Dude).select().where([
-    WhereOperation(
+    Equal(
       key: 'name',
       value: 'John',
-      operation: WhereOperationType.equal,
     ),
-    WhereOperation(
+    Between(
       key: 'id',
-      value: 1,
-      operation: WhereOperationType.equal,
+      value: [1, 5],
     ),
   ]).execute();
   print(result);

@@ -1,6 +1,7 @@
 import 'dart:mirrors';
 
 import 'package:dart_core_orm/src/annotations/class_annotations.dart';
+import 'package:dart_core_orm/src/operations.dart';
 import 'package:dart_core_orm/src/orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
@@ -62,42 +63,12 @@ class ChainedQuery {
   }
 
   Future<List> execute() async {
-    final List mappedResult = await orm?.executeSimpleQuery(query: '${_parts.join(' ')};') as List? ?? [];
+    final query = '${_parts.join(' ')};';
+    print('QUERY: $query');
+    final List mappedResult = await orm?.executeSimpleQuery(query: query) as List? ?? [];
     return mappedResult.map((e) {
       return _type!.fromJson(e);
     }).toList();
   }
 }
 
-class WhereOperation {
-  WhereOperation({
-    required this.key,
-    required this.value,
-    required this.operation,
-  });
-
-  /// column name
-  final String key;
-
-  /// the value to compare with
-  final Object value;
-  final WhereOperationType operation;
-
-  String toOperation() {
-    final valueRepresentation = value is String ? '\'$value\'' : value;
-    return '$key ${operation.operation} $valueRepresentation';
-  }
-}
-
-enum WhereOperationType {
-  equal('='),
-  notEqual('!='),
-  less('<'),
-  greater('>'),
-  lessOrEqual('<='),
-  greaterOrEqual('>=');
-
-  final String operation;
-
-  const WhereOperationType(this.operation);
-}
