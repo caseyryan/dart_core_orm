@@ -1,39 +1,61 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Object Relational Mapping SDK for Dart Net Core API
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages). 
+IMPORTANT: This library is in development and is not ready for any use
+At the moment I'm only making a simple PostgreSQL support 
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages). 
--->
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+This library is based on reflections and will not work with AOT compilation.
 
-## Features
+## Getting Started
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+Initialize the library somewhere in the beginning of your program
+Basically that's all you need. 
 
 ```dart
-const like = 'sample';
+import 'package:dart_core_orm/dart_core_orm.dart';
+
+Orm(
+  database: 'postgres',
+  username: 'postgres',
+  password: '',
+  host: 'localhost',
+  family: DatabaseFamily.postgres,
+  isSecureConnection: false,
+);
 ```
 
-## Additional information
+# Usage
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+Take any class like 
+
+```dart
+class Dude {
+  int? id;
+  String? name;
+}
+```
+
+and select its instances 
+
+```dart
+final result = await (Dude).select().execute();
+```
+
+or select specific fields
+```dart
+final result = await (Dude).select(['name']).execute();
+```
+
+The name of the table is retrieved from the class name by making in plural and converting it to snake case.
+so if the class name is `Dude` the table name will be `dudes`
+
+But you can also specify a different table name by using the `@TableName` annotation on a class
+
+```dart
+@TableName('buddies')
+class Dude {
+  int? id;
+  String? name;
+}
+```
+
