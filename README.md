@@ -27,7 +27,7 @@ Orm.initialize(
 
 # Usage
 
-Take any class like 
+## SELECT
 
 ```dart
 class Dude {
@@ -60,3 +60,35 @@ class Dude {
 }
 ```
 
+## CREATE TABLE
+
+You can create a table by using the `createTable` method
+
+```dart
+(Car).createTable().execute();
+```
+
+The name of the table is retrieved from the class name by making in plural and converting it to snake case.
+and then each field type and name is retrieved internally in a tricky way and the query is built accordingly
+
+In order to add some more parameters to each column you may use ancestors of `TableColumnAnnotation`
+
+```dart
+class Car {
+
+  @PrimaryKeyColumn()
+  @NotNullColumn()
+  @UniqueColumn(autoIncrement: true)
+  int? id;
+
+  /// This will be converted to VARCHAR(20) 
+  /// on the database where it's supported or similar
+  @LimitColumn(limit: 20)
+  String? manufacturer;
+
+  /// don't let the car be more powerful than 500 horsepower) 
+  /// this will be converted to INTEGER CHECK (enginePower <= 300)
+  /// Thus limiting the max value of the int to 300 in this case
+  @LimitColumn(limit: 300)
+  int? enginePower;
+}
