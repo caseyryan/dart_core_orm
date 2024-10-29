@@ -3,16 +3,15 @@
 import 'dart:mirrors';
 
 import 'package:collection/collection.dart';
-import 'package:dart_core_orm/src/annotations/class_annotations.dart';
+import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:dart_core_orm/src/annotations/table_column_annotations.dart';
 import 'package:dart_core_orm/src/orm.dart';
-import 'package:dart_core_orm/src/where_operations.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 extension TypeExtension on Type {
   ChainedQuery _toChainedQuery() {
     final query = this is ChainedQuery ? this as ChainedQuery : ChainedQuery()
-      .._type = this;
+      ..type = this;
     return query;
   }
 
@@ -41,6 +40,18 @@ extension TypeExtension on Type {
         );
         if (limitAnnotation != null) {
           return limitAnnotation.getValueForType(this, fieldName);
+        }
+        final uniqueConstraint =
+            columnAnnotations.whereType<UniqueColumn>().firstOrNull;
+        if (uniqueConstraint != null) {
+          /// for SERIAL type we don't need any of these
+          columnAnnotations.removeWhere((e) => e is NotNullColumn);
+          if (uniqueConstraint.autoIncrement == true) {
+            /// uniqueConstraint?.autoIncrement adds SERIAL pseudo type
+            /// that is automatically creating an INTEGER wo we don't need to return integer
+            /// here
+            return '';
+          }
         }
         return 'INTEGER';
       }
@@ -82,100 +93,63 @@ extension TypeExtension on Type {
     }
   }
 
+  Map<String, String> toColumnKeys() {
+    final objectType = this.fromJson({});
+    final convertedKeys = <String, String>{};
+    objectType!.toJson(
+      includeNullValues: true,
+      onKeyConversion: (
+        ConvertedKey keyConversionResult,
+      ) {
+        convertedKeys[keyConversionResult.oldKey] = keyConversionResult.newKey;
+      },
+    );
+    return convertedKeys;
+  }
+
   /// [dryRun] is used to only show the query itself not actually
   /// executing it
   Future createTable({
     bool dryRun = false,
+    bool ifNotExists = true,
   }) async {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    final typeMirror = reflectType(query._type!);
+    final typeMirror = reflectType(query.type!);
     final classMirror = typeMirror as ClassMirror;
     if (orm?.family == DatabaseFamily.postgres) {
-      query.add('CREATE TABLE $tableName (');
-      final json = query._type!.fromJson({});
-      final convertedKeys = <String, String>{};
-      json!.toJson(
-        includeNullValues: true,
-        onKeyConversion: (
-          ConvertedKey keyConversionResult,
-        ) {
-          convertedKeys[keyConversionResult.oldKey] = keyConversionResult.newKey;
-        },
-      );
-
-      final fields = classMirror.declarations.entries
-          .where(
-            (e) =>
-                e.value is VariableMirror &&
-                !(e.value as VariableMirror).isPrivate &&
-                !(e.value as VariableMirror).isConst,
-          )
-          .toList();
-      final fieldDescriptions = <FieldDescription>[];
-      for (var i = 0; i < fields.length; i++) {
-        final field = fields[i];
-        if (field.value is VariableMirror) {
-          var name = field.key.toName();
-          name = convertedKeys[name] ?? name;
-          final fieldType = (field.value as VariableMirror).type.reflectedType;
-          fieldDescriptions.add(
-            _getFieldDescription(
-              fieldName: name,
-              fieldType: fieldType,
-              metadata: field.value.metadata,
-            ),
-          );
-        }
+      query.add('CREATE TABLE');
+      if (ifNotExists) {
+        query.add('IF NOT EXISTS');
       }
+      query.add(tableName);
+      query.add('(');
+
+      final fieldDescriptions = classMirror.getFieldsDescription(query.type!);
       query.add(fieldDescriptions.join(', '));
       query.add(')');
     }
     if (!dryRun) {
-      await query.execute();
+      final result = await query.execute(dryRun: dryRun);
+      return result;
     } else {
       query.printQuery();
     }
+    return null;
   }
 
-  FieldDescription _getFieldDescription({
-    required String fieldName,
-    required Type fieldType,
-    required List<InstanceMirror> metadata,
-  }) {
-    List<TableColumnAnnotation> columnAnnotations = [];
-    if (metadata.isNotEmpty) {
-      /// row annotations are required to apply adjusted data types
-      /// instead of the evaluated based on the field type
-      columnAnnotations.addAll(
-        metadata.where((e) {
-          return e.reflectee is TableColumnAnnotation;
-        }).map((e) => e.reflectee),
-      );
-    }
-    final databaseType = fieldType.toDatabaseType(
-      columnAnnotations,
-      fieldName,
-    );
-    final otherColumnAnnotations = columnAnnotations.where((e) {
-      return e is! LimitColumn;
-    }).toList();
-    otherColumnAnnotations.sort((a, b) => b.order.compareTo(a.order));
-
-    final fieldDescription = FieldDescription._(
-      fieldName: fieldName,
-      dataTypes: [
-        databaseType,
-        ...otherColumnAnnotations.map(
-          (e) => e.getValueForType(
-            fieldType,
-            fieldName,
-          ),
-        )
-      ],
-    );
-    return fieldDescription;
-  }
+  // List<TableColumnAnnotation> getColumnAnnotations() {
+  //   List<TableColumnAnnotation> columnAnnotations = [];
+  //   if (metadata.isNotEmpty) {
+  //     /// row annotations are required to apply adjusted data types
+  //     /// instead of the evaluated based on the field type
+  //     columnAnnotations.addAll(
+  //       metadata.where((e) {
+  //         return e.reflectee is TableColumnAnnotation;
+  //       }).map((e) => e.reflectee),
+  //     );
+  //   }
+  // }
 
   ChainedQuery select([List<String>? paramsNames]) {
     final query = _toChainedQuery();
@@ -209,8 +183,14 @@ extension TypeExtension on Type {
   }
 }
 
+enum ConflictResolution {
+  ignore,
+  update,
+  error,
+}
+
 class ChainedQuery {
-  Type? _type;
+  Type? type;
 
   final List<String> _parts = [];
 
@@ -281,19 +261,64 @@ class ChainedQuery {
     final executeResult = await execute();
     if (executeResult is List) {
       return executeResult.map((e) {
-        return _type!.fromJson(e);
+        return type!.fromJson(e);
       }).toList();
     }
     return [];
   }
 
-  Future<Object?> execute() async {
+  Future<Object?> execute({
+    Duration? timeout,
+    bool dryRun = false,
+  }) async {
     final query = _getQueryString();
-    if (orm?.printQueries == true) {
-      print('EXECUTING QUERY: $query');
-    }
-    return await orm?.executeSimpleQuery(query: query);
+    return await orm?.executeSimpleQuery(
+      query: query,
+      timeout: timeout,
+      dryRun: dryRun,
+    );
   }
+}
+
+FieldDescription getFieldDescription({
+  required String fieldName,
+  required Type fieldType,
+  required List<InstanceMirror> metadata,
+}) {
+  List<TableColumnAnnotation> columnAnnotations = [];
+  if (metadata.isNotEmpty) {
+    /// row annotations are required to apply adjusted data types
+    /// instead of the evaluated based on the field type
+    columnAnnotations.addAll(
+      metadata.where((e) {
+        return e.reflectee is TableColumnAnnotation;
+      }).map((e) => e.reflectee),
+    );
+  }
+  final databaseType = fieldType.toDatabaseType(
+    columnAnnotations,
+    fieldName,
+  );
+  final otherColumnAnnotations = columnAnnotations.where((e) {
+    return e is! LimitColumn;
+  }).toList();
+  otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
+  bool hasUniqueConstraints = otherColumnAnnotations
+      .any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
+  final fieldDescription = FieldDescription(
+    fieldName: fieldName,
+    hasUniqueConstraints: hasUniqueConstraints,
+    dataTypes: [
+      databaseType,
+      ...otherColumnAnnotations.map(
+        (e) => e.getValueForType(
+          fieldType,
+          fieldName,
+        ),
+      )
+    ],
+  );
+  return fieldDescription;
 }
 
 /// when a type is decomposed using mirrors, the SDK created a list of
@@ -305,9 +330,11 @@ class FieldDescription {
   /// it will be joined when query is about to be executed
   final List<String> dataTypes;
   final String fieldName;
-  FieldDescription._({
+  final bool hasUniqueConstraints;
+  FieldDescription({
     required this.dataTypes,
     required this.fieldName,
+    required this.hasUniqueConstraints,
   });
 
   @override

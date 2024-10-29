@@ -4,7 +4,7 @@ abstract class TableColumnAnnotation {
   const TableColumnAnnotation();
 
   String getValueForType(
-    Type type, 
+    Type type,
     String fieldName,
   );
   int get order;
@@ -15,7 +15,7 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
 
   @override
   String getValueForType(
-    Type type, 
+    Type type,
     String fieldName,
   ) {
     if (type != int && type != String && type != bool && type != DateTime) {
@@ -30,9 +30,9 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
   @override
   int get order {
     if (orm?.family == DatabaseFamily.postgres) {
-      return 0;
+      return 10;
     }
-    return 0;
+    return 10;
   }
 }
 
@@ -41,7 +41,7 @@ class NotNullColumn extends TableColumnAnnotation {
 
   @override
   String getValueForType(
-    Type type, 
+    Type type,
     String fieldName,
   ) {
     if (orm?.family == DatabaseFamily.postgres) {
@@ -69,7 +69,7 @@ class LimitColumn extends TableColumnAnnotation {
 
   @override
   String getValueForType(
-    Type type, 
+    Type type,
     String fieldName,
   ) {
     if (orm?.family == DatabaseFamily.postgres) {
@@ -86,7 +86,7 @@ class LimitColumn extends TableColumnAnnotation {
   @override
   int get order {
     if (orm?.family == DatabaseFamily.postgres) {
-      return 0;
+      return 1;
     }
     return 0;
   }
@@ -101,12 +101,12 @@ class UniqueColumn extends TableColumnAnnotation {
 
   @override
   String getValueForType(
-    Type type, 
+    Type type,
     String fieldName,
   ) {
     if (orm?.family == DatabaseFamily.postgres) {
       if (autoIncrement && type == int) {
-        return 'SERIAL UNIQUE';
+        return 'SERIAL';
       }
       return 'UNIQUE';
     }

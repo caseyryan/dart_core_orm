@@ -21,7 +21,8 @@ class Orm {
         password: password,
       );
       _settings = psql.ConnectionSettings(
-        sslMode: isSecureConnection ? psql.SslMode.require : psql.SslMode.disable,
+        sslMode:
+            isSecureConnection ? psql.SslMode.require : psql.SslMode.disable,
       );
     }
     _orm = this;
@@ -53,6 +54,7 @@ class Orm {
   final String username;
   final DatabaseFamily family;
   final bool isSecureConnection;
+
   /// if true, it will print all executing queries
   final bool printQueries;
 
@@ -69,10 +71,21 @@ class Orm {
   Future<Object?> executeSimpleQuery({
     required String query,
     Duration? timeout,
+    bool dryRun = false,
   }) async {
     if (family == DatabaseFamily.postgres) {
       psql.Connection? conn;
       try {
+        if (orm?.printQueries == true) {
+          if (dryRun) {
+            print('EXECUTING SIMPLE QUERY (DRY RUN): $query');
+          } else {
+            print('EXECUTING SIMPLE QUERY: $query');
+          }
+        }
+        if (dryRun) {
+          return [];
+        }
         conn = await _createPostgresConnection();
         final result = await conn.execute(
           query,
@@ -96,7 +109,13 @@ class Orm {
           }
           return list;
         }
-      } catch (_) {
+      } on psql.ServerException catch (e) {
+        print(e);
+        return [
+          e.message,
+        ];
+      } catch (e) {
+        print(e);
       } finally {
         await conn?.close();
       }
