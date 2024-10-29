@@ -56,7 +56,8 @@ extension TypeExtension on Type {
   /// [dryRun] is used to only show the query itself not actually executing it
   /// [ifExists] is used to check if the table exists before dropping it
   /// to avoid error in case the table does not exist
-  /// [cascade] this will automatically drop any dependent objects, such as foreign key constraints.
+  /// [cascade] this will automatically drop any dependent objects
+  /// such as foreign key constraints.
   Future dropTable({
     bool dryRun = false,
     bool ifExists = false,
@@ -74,7 +75,7 @@ extension TypeExtension on Type {
         query.add('CASCADE');
       }
       if (!dryRun) {
-        query.execute();
+        await query.execute();
       } else {
         query.printQuery();
       }
@@ -131,7 +132,7 @@ extension TypeExtension on Type {
       query.add(')');
     }
     if (!dryRun) {
-      query.execute();
+      await query.execute();
     } else {
       query.printQuery();
     }
