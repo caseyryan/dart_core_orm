@@ -175,6 +175,26 @@ final result = await (Dude).select(['name']).toListAsync();
 
 The name of the table is retrieved from the class name by making in plural and converting it to snake case.
 
+## DELETE
+
+To delete a record you can use the `delete` method like this:
+
+```dart
+final result = await (Car).delete().where([
+  Equal(
+    key: 'id',
+    value: 7,
+  ),
+]).execute(
+  returnResult: true,
+  dryRun: false,
+);
+```
+
+This will delete the record if it was present and return in as a result
+
+
+
 ## DROP TABLE
 
 You can drop a table by using the `dropTable` type extension method method
