@@ -41,12 +41,12 @@ class Dude {
 and select its instances 
 
 ```dart
-final result = await (Dude).select().execute();
+final result = await (Dude).select().toListAsync();
 ```
 
 or select specific fields
 ```dart
-final result = await (Dude).select(['name']).execute();
+final result = await (Dude).select(['name']).toListAsync();
 ```
 
 The name of the table is retrieved from the class name by making in plural and converting it to snake case.
