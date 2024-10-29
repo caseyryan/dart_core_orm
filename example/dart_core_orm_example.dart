@@ -14,23 +14,7 @@ Future main() async {
     printQueries: true,
   );
 
-  // result = await conn.execute(
-  //   r'INSERT INTO dudes (name) VALUES ($1), ($2), ($3)',
-  //   parameters: ['John', 'Jane', 'Jack'],
-  // );
-  // final dude = Dude()..name = 'Chester';
-
-  // final dropResult = await (Car).dropTable(
-  //   dryRun: false,
-  //   ifExists: true,
-  //   cascade: true,
-  // );
-  final createResult = await (Car).createTable(
-    dryRun: false,
-  );
-  // print(createResult);
-  // print(dropResult);
-  // return;
+  await createTable();
 
   // final result = await (Car).select(['name']).execute();
   // final result = await (Dude).select().where([
@@ -54,10 +38,70 @@ Future main() async {
   //       conflictResolution: ConflictResolution.update,
   //     )
   //     .execute(dryRun: false);
+  // update();
+  // select();
+  // delete();
+  insertInstance();
+}
+
+Future insertInstance() async {
+  final car = Car()
+    ..manufacturer = 'Bugatti'
+    ..enginePower = 188;
+  final result = await car
+      .insert(
+        conflictResolution: ConflictResolution.update,
+      )
+      .execute(
+        dryRun: false,
+        returnResult: true,
+      );
+  print(result);
+}
+
+Future createTable() async {
+  await (Car).createTable(
+    dryRun: false,
+    ifNotExists: true,
+  );
+}
+
+Future delete() async {
+  final result = await (Car).delete().where([
+    Equal(
+      key: 'id',
+      value: 1,
+    ),
+  ]).execute(
+    returnResult: true,
+    dryRun: false,
+  );
+  print(result);
+}
+
+Future select() async {
+  final result = await (Car).select().where([
+    Equal(
+      key: 'id',
+      value: 1,
+      nextJoiner: Joiner.or,
+    ),
+    Equal(
+      key: 'manufacturer',
+      value: 'Toyota',
+    ),
+  ]).execute(
+    returnResult: true,
+    dryRun: false,
+  );
+  print(result);
+}
+
+Future update() async {
   final carUpdate = Car()
     ..manufacturer = 'Toyota'
     ..enginePower = 95;
-  (Car).update(carUpdate).where([
+  final result = await (Car).update(carUpdate).where([
     Equal(
       key: 'id',
       value: 7,
@@ -67,7 +111,10 @@ Future main() async {
       key: 'manufacturer',
       value: 'Toyota',
     ),
-  ]).execute(dryRun: false);
+  ]).execute(
+    dryRun: false,
+    returnResult: true,
+  );
 
-  // print(result);
+  print(result);
 }

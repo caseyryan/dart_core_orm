@@ -177,7 +177,7 @@ The name of the table is retrieved from the class name by making in plural and c
 
 ## DROP TABLE
 
-You can drop a table by using the `dropTable` method
+You can drop a table by using the `dropTable` type extension method method
 
 ```dart
 (Car).dropTable(

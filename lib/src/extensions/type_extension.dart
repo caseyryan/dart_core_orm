@@ -198,6 +198,15 @@ extension TypeExtension on Type {
     return query;
   }
 
+  ChainedQuery delete() {
+    final query = _toChainedQuery();
+    final tableName = toTableName();
+    if (orm?.family == DatabaseFamily.postgres) {
+      query.add('DELETE FROM $tableName');
+    }
+    return query;
+  }
+
   bool isSubclassOf<T>() {
     final classMirror = reflectType(this) as ClassMirror;
     return classMirror.isSubclassOf(reflectType(T) as ClassMirror);
@@ -254,6 +263,19 @@ class ChainedQuery {
     return '';
   }
 
+  bool get _canReturnResult {
+    switch (queryType) {
+      case 'INSERT':
+      case 'UPDATE':
+      case 'DELETE':
+        return true;
+      case 'SELECT':
+      case 'CREATE TABLE':
+        return false;
+    }
+    return false;
+  }
+
   bool get _allowsChaining {
     switch (queryType) {
       case 'SELECT':
@@ -265,6 +287,10 @@ class ChainedQuery {
         return false;
     }
     return true;
+  }
+
+  bool get _isDeleteQuery {
+    return queryType == 'DELETE';
   }
 
   ChainedQuery where(List<WhereOperation> operations) {
@@ -314,13 +340,31 @@ class ChainedQuery {
   Future<Object?> execute({
     Duration? timeout,
     bool dryRun = false,
+    bool returnResult = false,
   }) async {
+    if (returnResult) {
+      if (_canReturnResult) {
+        add('RETURNING *');
+      }
+    }
     final query = _getQueryString();
-    return await orm?.executeSimpleQuery(
+    final result = await orm?.executeSimpleQuery(
       query: query,
       timeout: timeout,
       dryRun: dryRun,
     );
+    if (result is List && result.isNotEmpty) {
+      if (result.first is Map) {
+        return result.map((e) {
+          print(e);
+          return type!.fromJson(e);
+        }).toList();
+      }
+
+      /// This might contain errors as String objects
+      return result;
+    }
+    return [];
   }
 }
 
