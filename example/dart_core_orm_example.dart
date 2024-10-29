@@ -11,6 +11,7 @@ Future main() async {
     host: 'localhost',
     family: DatabaseFamily.postgres,
     isSecureConnection: false,
+    printQueries: true,
   );
 
   // result = await conn.execute(
@@ -19,7 +20,12 @@ Future main() async {
   // );
   // final dude = Dude()..name = 'Chester';
 
-  (Car).createTable().execute();
+  // (Car).createTable(dryRun: true);
+  (Car).dropTable(
+    dryRun: true,
+    ifExists: true,
+    cascade: true,
+  );
 
   // final result = await (Dude).select(['name']).execute();
   // final result = await (Dude).select().where([

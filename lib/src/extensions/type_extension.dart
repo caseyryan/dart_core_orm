@@ -53,39 +53,88 @@ extension TypeExtension on Type {
     return '';
   }
 
-  ChainedQuery createTable() {
+  /// [dryRun] is used to only show the query itself not actually executing it
+  /// [ifExists] is used to check if the table exists before dropping it
+  /// to avoid error in case the table does not exist
+  /// [cascade] this will automatically drop any dependent objects, such as foreign key constraints.
+  Future dropTable({
+    bool dryRun = false,
+    bool ifExists = false,
+    bool cascade = false,
+  }) async {
+    final query = _toChainedQuery();
+    final tableName = toTableName();
+    if (orm?.family == DatabaseFamily.postgres) {
+      if (ifExists) {
+        query.add('DROP TABLE IF EXISTS $tableName');
+      } else {
+        query.add('DROP TABLE $tableName');
+      }
+      if (cascade) {
+        query.add('CASCADE');
+      }
+      if (!dryRun) {
+        query.execute();
+      } else {
+        query.printQuery();
+      }
+    }
+  }
+
+  /// [dryRun] is used to only show the query itself not actually
+  /// executing it
+  Future createTable({
+    bool dryRun = false,
+  }) async {
     final query = _toChainedQuery();
     final tableName = toTableName();
     final typeMirror = reflectType(query._type!);
     final classMirror = typeMirror as ClassMirror;
-    query.add('CREATE TABLE $tableName (');
+    if (orm?.family == DatabaseFamily.postgres) {
+      query.add('CREATE TABLE $tableName (');
+      final json = query._type!.fromJson({});
+      final convertedKeys = <String, String>{};
+      json!.toJson(
+        includeNullValues: true,
+        onKeyConversion: (
+          ConvertedKey keyConversionResult,
+        ) {
+          convertedKeys[keyConversionResult.oldKey] = keyConversionResult.newKey;
+        },
+      );
 
-    final fields = classMirror.declarations.entries
-        .where(
-          (e) =>
-              e.value is VariableMirror &&
-              !(e.value as VariableMirror).isPrivate &&
-              !(e.value as VariableMirror).isConst,
-        )
-        .toList();
-    final fieldDescriptions = <FieldDescription>[];
-    for (var i = 0; i < fields.length; i++) {
-      final field = fields[i];
-      if (field.value is VariableMirror) {
-        final name = field.key.toName();
-        final fieldType = (field.value as VariableMirror).type.reflectedType;
-        fieldDescriptions.add(
-          _getFieldDescription(
-            fieldName: name,
-            fieldType: fieldType,
-            metadata: field.value.metadata,
-          ),
-        );
+      final fields = classMirror.declarations.entries
+          .where(
+            (e) =>
+                e.value is VariableMirror &&
+                !(e.value as VariableMirror).isPrivate &&
+                !(e.value as VariableMirror).isConst,
+          )
+          .toList();
+      final fieldDescriptions = <FieldDescription>[];
+      for (var i = 0; i < fields.length; i++) {
+        final field = fields[i];
+        if (field.value is VariableMirror) {
+          var name = field.key.toName();
+          name = convertedKeys[name] ?? name;
+          final fieldType = (field.value as VariableMirror).type.reflectedType;
+          fieldDescriptions.add(
+            _getFieldDescription(
+              fieldName: name,
+              fieldType: fieldType,
+              metadata: field.value.metadata,
+            ),
+          );
+        }
       }
+      query.add(fieldDescriptions.join(', '));
+      query.add(')');
     }
-    query.add(fieldDescriptions.join(', '));
-    query.add(')');
-    return query;
+    if (!dryRun) {
+      query.execute();
+    } else {
+      query.printQuery();
+    }
   }
 
   FieldDescription _getFieldDescription({
@@ -182,8 +231,8 @@ class ChainedQuery {
       }
       if (first.contains('DELETE')) {
         return 'DELETE';
-      } 
-      if (first.contains('CREATE TABLE')) { 
+      }
+      if (first.contains('CREATE TABLE')) {
         return 'CREATE TABLE';
       }
     }
@@ -219,9 +268,19 @@ class ChainedQuery {
     }
   }
 
+  void printQuery() {
+    print('PREPARED QUERY: ${_getQueryString()}');
+  }
+
+  String _getQueryString() {
+    return '${_parts.join(' ')};';
+  }
+
   Future<List> execute() async {
-    final query = '${_parts.join(' ')};';
-    print('QUERY: $query');
+    final query = _getQueryString();
+    if (orm?.printQueries == true) {
+      print('EXECUTING QUERY: $query');
+    }
     final List mappedResult = await orm?.executeSimpleQuery(query: query) as List? ?? [];
     return mappedResult.map((e) {
       return _type!.fromJson(e);

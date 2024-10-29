@@ -11,6 +11,7 @@ class Orm {
     required this.username,
     required this.family,
     required this.isSecureConnection,
+    required this.printQueries,
   }) {
     if (family == DatabaseFamily.postgres) {
       _endpoint = psql.Endpoint(
@@ -33,6 +34,7 @@ class Orm {
     required String username,
     required DatabaseFamily family,
     required bool isSecureConnection,
+    bool printQueries = false,
   }) {
     return Orm._(
       host: host,
@@ -41,6 +43,7 @@ class Orm {
       username: username,
       family: family,
       isSecureConnection: isSecureConnection,
+      printQueries: printQueries,
     );
   }
 
@@ -50,6 +53,8 @@ class Orm {
   final String username;
   final DatabaseFamily family;
   final bool isSecureConnection;
+  /// if true, it will print all executing queries
+  final bool printQueries;
 
   late final psql.Endpoint _endpoint;
   late final psql.ConnectionSettings? _settings;

@@ -67,7 +67,7 @@ class Dude {
 You can create a table by using the `createTable` method
 
 ```dart
-(Car).createTable().execute();
+(Car).createTable();
 ```
 
 The name of the table is retrieved from the class name by making in plural and converting it to snake case.
