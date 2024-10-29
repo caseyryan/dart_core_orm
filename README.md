@@ -2,17 +2,23 @@
 
 
 
-IMPORTANT: This library is in development and is not ready for any use
+**IMPORTANT**: This library is in development and is not ready for any use
 At the moment I'm only making a simple PostgreSQL support 
 
 
-This library is based on reflections and will not work with AOT compilation.
+This library is based on reflections and will **not** work with AOT compilation, **only** JIT is supported. 
+
 
 ## Getting Started
 
 Initialize the library somewhere in the beginning of your program
 Basically that's all you need. You don't even have to assign it to any variable 
 since internally is is assigned and will be used by the ORM library on its own
+
+**NOTE:** as the library is actively using [Reflect Buddy](https://github.com/caseyryan/reflect_buddy) 
+under the hood. The models support all the functionality of the library e.g. 
+all ValueConverters, KeyConverters, Validators etc. Read the documentation for the Reflect Buddy library
+to learn more about it, it's very powerful
 
 ```dart
 import 'package:dart_core_orm/dart_core_orm.dart';
