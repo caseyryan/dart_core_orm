@@ -20,19 +20,19 @@ Future main() async {
   // );
   // final dude = Dude()..name = 'Chester';
 
-  final dropResult = await (Car).dropTable(
-    dryRun: false,
-    ifExists: true,
-    cascade: true,
-  );
+  // final dropResult = await (Car).dropTable(
+  //   dryRun: false,
+  //   ifExists: true,
+  //   cascade: true,
+  // );
   final createResult = await (Car).createTable(
     dryRun: false,
   );
-  print(createResult);
+  // print(createResult);
   // print(dropResult);
   // return;
 
-  // final result = await (Dude).select(['name']).execute();
+  // final result = await (Car).select(['name']).execute();
   // final result = await (Dude).select().where([
   //   Equal(
   //     key: 'name',
@@ -45,14 +45,29 @@ Future main() async {
   // ]).toListAsync();
   // print(result);
 
-  final car = Car()
-    ..id = 7
+  // final car = Car()
+  //   ..id = 7
+  //   ..manufacturer = 'Lada'
+  //   ..enginePower = 120;
+  // final result = await car
+  //     .insert(
+  //       conflictResolution: ConflictResolution.update,
+  //     )
+  //     .execute(dryRun: false);
+  final carUpdate = Car()
     ..manufacturer = 'Toyota'
-    ..enginePower = 270;
-  final result = await car
-      .insert(
-        conflictResolution: ConflictResolution.update,
-      )
-      .execute(dryRun: false);
+    ..enginePower = 95;
+  (Car).update(carUpdate).where([
+    Equal(
+      key: 'id',
+      value: 7,
+      nextJoiner: Joiner.or,
+    ),
+    Equal(
+      key: 'manufacturer',
+      value: 'Toyota',
+    ),
+  ]).execute(dryRun: false);
+
   // print(result);
 }

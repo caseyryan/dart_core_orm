@@ -41,8 +41,7 @@ extension TypeExtension on Type {
         if (limitAnnotation != null) {
           return limitAnnotation.getValueForType(this, fieldName);
         }
-        final uniqueConstraint =
-            columnAnnotations.whereType<UniqueColumn>().firstOrNull;
+        final uniqueConstraint = columnAnnotations.whereType<UniqueColumn>().firstOrNull;
         if (uniqueConstraint != null) {
           /// for SERIAL type we don't need any of these
           columnAnnotations.removeWhere((e) => e is NotNullColumn);
@@ -138,29 +137,64 @@ extension TypeExtension on Type {
     return null;
   }
 
-  // List<TableColumnAnnotation> getColumnAnnotations() {
-  //   List<TableColumnAnnotation> columnAnnotations = [];
-  //   if (metadata.isNotEmpty) {
-  //     /// row annotations are required to apply adjusted data types
-  //     /// instead of the evaluated based on the field type
-  //     columnAnnotations.addAll(
-  //       metadata.where((e) {
-  //         return e.reflectee is TableColumnAnnotation;
-  //       }).map((e) => e.reflectee),
-  //     );
-  //   }
-  // }
+  /// [update] is an instance of your model with the changed
+  /// fields you want to update
+  /// e.g. you want to update a Car record and update the manufacturer:
+  /// you create an instance of Car and set the manufacturer field
+  /// and after that you write a where clause to specify which record
+  /// to update
+  /// like this:
+  /*
 
-  ChainedQuery select([List<String>? paramsNames]) {
+    final updatedInstance = Car() 
+     ..manufacturer = 'BYD Tang';
+      (Car).update(updatedInstance).where([
+        Equal(
+          key: 'id',
+          value: 7,
+        ),
+      ]).execute();
+  
+   */
+  /// This will update the record with the id of 7
+  /// and set the manufacturer to 'BYD Tang'
+
+  ChainedQuery update<T>(T update) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    query.add('SELECT');
-    if (paramsNames?.isNotEmpty != true) {
-      query.add('*');
-    } else {
-      query.add(paramsNames!.join(', '));
+    if (orm?.family == DatabaseFamily.postgres) {
+      query.add('UPDATE $tableName');
+      final json = (update as Object).toJson(
+        includeNullValues: false,
+      ) as Map;
+      query.add('SET');
+      query.add(json.entries.map(
+        (entry) {
+          var value = entry.value;
+          if (value is String) {
+            value = "'$value'";
+          }
+          return '${entry.key} = $value';
+        },
+      ).join(', '));
     }
-    query.add('FROM $tableName');
+    return query;
+  }
+
+  ChainedQuery select([
+    List<String>? paramsNames,
+  ]) {
+    final query = _toChainedQuery();
+    final tableName = toTableName();
+    if (orm?.family == DatabaseFamily.postgres) {
+      query.add('SELECT');
+      if (paramsNames?.isNotEmpty != true) {
+        query.add('*');
+      } else {
+        query.add(paramsNames!.join(', '));
+      }
+      query.add('FROM $tableName');
+    }
     return query;
   }
 
@@ -239,7 +273,17 @@ class ChainedQuery {
     }
     _checkIfChainingIsAllowed();
     add('WHERE');
-    add(operations.map((e) => e.toOperation()).join(' AND ').trim());
+    if (operations.length == 1) {
+      add(operations.first.toOperation());
+    } else if (operations.length > 1) {
+      for (var i = 0; i < operations.length; i++) {
+        final operation = operations[i];
+        add(operation.toOperation());
+        if (i != operations.length - 1) {
+          add(operation.nextJoiner.value);
+        }
+      }
+    }
     return this;
   }
 
@@ -303,8 +347,7 @@ FieldDescription getFieldDescription({
     return e is! LimitColumn;
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
-  bool hasUniqueConstraints = otherColumnAnnotations
-      .any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
+  bool hasUniqueConstraints = otherColumnAnnotations.any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
   final fieldDescription = FieldDescription(
     fieldName: fieldName,
     hasUniqueConstraints: hasUniqueConstraints,

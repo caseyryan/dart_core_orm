@@ -1,10 +1,13 @@
 /// Where operations
 library;
 
+// TODO: add OR concatination 
+
 class Equal extends WhereOperation {
   Equal({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.equal,
         );
@@ -14,6 +17,7 @@ class NotEqual extends WhereOperation {
   NotEqual({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.notEqual,
         );
@@ -23,6 +27,7 @@ class GreaterThan extends WhereOperation {
   GreaterThan({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.greater,
         );
@@ -32,6 +37,7 @@ class LessThan extends WhereOperation {
   LessThan({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.less,
         );
@@ -41,6 +47,7 @@ class GreaterThanOrEqual extends WhereOperation {
   GreaterThanOrEqual({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.greaterOrEqual,
         );
@@ -50,6 +57,7 @@ class LessThanOrEqual extends WhereOperation {
   LessThanOrEqual({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.lessOrEqual,
         );
@@ -59,6 +67,7 @@ class InList extends WhereOperation {
   InList({
     required super.key,
     required List<Object?> value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.inList,
           value: value,
@@ -76,6 +85,7 @@ class Between extends WhereOperation {
         super(
           operation: WhereOperationType.between,
           value: value,
+          nextJoiner: Joiner.and,
         );
 }
 
@@ -83,6 +93,7 @@ class Like extends WhereOperation {
   Like({
     required super.key,
     required super.value,
+    super.nextJoiner = Joiner.and,
   }) : super(
           operation: WhereOperationType.like,
         );
@@ -93,6 +104,7 @@ abstract class WhereOperation {
     required this.key,
     this.value,
     required this.operation,
+    required this.nextJoiner,
   });
 
   /// column name
@@ -101,6 +113,10 @@ abstract class WhereOperation {
   /// the value to compare with
   final Object? value;
   final WhereOperationType operation;
+  /// [nextJoiner] is used to specify how to join the operations
+  /// e.g. if you want to use OR instead of AND
+  /// it will have effect if you provide more than one operation
+  final Joiner nextJoiner;
 
   String toOperation() {
     Object? valueRepresentation;
@@ -130,6 +146,14 @@ abstract class WhereOperation {
     }
     return '$key ${operation.operation} $valueRepresentation'.trim();
   }
+}
+
+enum Joiner {
+  and(' AND '),
+  or(' OR ');
+
+  const Joiner(this.value);
+  final String value;
 }
 
 enum WhereOperationType {

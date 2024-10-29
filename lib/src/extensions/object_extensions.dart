@@ -5,6 +5,14 @@ import 'package:dart_core_orm/src/orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 extension ObjectExtensions on Object {
+  
+  /// Update or insert
+  ChainedQuery upsert() {
+    return insert(
+      conflictResolution: ConflictResolution.update,
+    );
+  }
+
   /// [conflictResolution] is used to specify how to handle conflicts
   /// when inserting a row that already exists
   ChainedQuery insert({
@@ -40,13 +48,10 @@ extension ObjectExtensions on Object {
         final fieldDescription = classReflection.getFieldsDescription(
           query.type!,
         );
-        final uniqueColumns =
-            fieldDescription.where((e) => e.hasUniqueConstraints).toList();
+        final uniqueColumns = fieldDescription.where((e) => e.hasUniqueConstraints).toList();
         if (uniqueColumns.isNotEmpty) {
           /// because update only makes sense when there is a unique constraint
-          final uniqueKeys = keys
-              .where((e) => uniqueColumns.any((c) => c.fieldName == e))
-              .toList();
+          final uniqueKeys = keys.where((e) => uniqueColumns.any((c) => c.fieldName == e)).toList();
           if (uniqueKeys.isNotEmpty) {
             query.add('ON CONFLICT (${uniqueKeys.join(', ')}) DO UPDATE SET');
             for (var i = 0; i < keys.length; i++) {

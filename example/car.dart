@@ -15,7 +15,7 @@ class Car {
   @LimitColumn(limit: 20)
   String? manufacturer;
 
-  /// don't let the car be more powerful than 500 horsepower)
+  /// don't let the car be more powerful than 300 horsepower)
   @LimitColumn(limit: 300)
   int? enginePower;
 }

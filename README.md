@@ -94,3 +94,89 @@ class Car {
   @LimitColumn(limit: 300)
   int? enginePower;
 }
+```
+
+## UPDATE
+
+To update a record you need to create an instance of your model and set the fields you want to update.
+If you wish to add a few `WHERE` clauses to your query you can use the `where` method
+with a list of `WhereOperation` objects. You can also specify the way the previous clause will 
+be joined with the next one by using the `nextJoiner` parameter of the `WhereOperation` class.
+in this case it will be `Joiner.or` which will result in `OR` instead of `AND` (default one)
+
+
+```dart
+final carUpdate = Car()
+  ..manufacturer = 'Toyota'
+  ..enginePower = 95;
+
+(Car).update(carUpdate).where([
+  Equal(
+    key: 'id',
+    value: 7,
+    nextJoiner: Joiner.or,
+  ),
+  Equal(
+    key: 'manufacturer',
+    value: 'Toyota',
+  ),
+]).execute(dryRun: false);
+```
+
+## INSERT or UPSERT
+
+To insert a record you need to create an instance of your model and set the fields you want to insert.
+
+```dart
+final car = Car()
+  ..id = 7
+  ..manufacturer = 'Lada'
+  ..enginePower = 120;
+final result = await car
+    .insert(
+      conflictResolution: ConflictResolution.update,
+    )
+    .execute(dryRun: false);
+```
+
+You may also specify a conflict resolution strategy by using the `conflictResolution` parameter
+of the `insert` method.
+That's the generic method. 
+
+But you can also use the `upsert` method which will be a shortcut for the `insert` method
+with the `conflictResolution` parameter set to `ConflictResolution.update`
+It will update the existing record found by `id` or insert a new one if it doesn't exist
+
+```dart
+final car = Car()
+  ..id = 7
+  ..manufacturer = 'Proton'
+  ..enginePower = 100;
+
+final result = await car.upsert().execute(dryRun: false);
+```
+
+
+
+
+## SELECT
+
+You can select specific fields by using the `select` method
+
+```dart
+final result = await (Dude).select(['name']).toListAsync();
+```
+
+The name of the table is retrieved from the class name by making in plural and converting it to snake case.
+
+## DROP TABLE
+
+You can drop a table by using the `dropTable` method
+
+```dart
+(Car).dropTable(
+  dryRun: false,
+  ifExists: true,
+  cascade: true,
+);
+```
