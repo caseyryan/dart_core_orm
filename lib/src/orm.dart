@@ -66,7 +66,7 @@ class Orm {
     );
   }
 
-  Future<List<Map>> executeSimpleQuery({
+  Future<Object?> executeSimpleQuery({
     required String query,
     Duration? timeout,
   }) async {

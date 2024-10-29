@@ -1,7 +1,7 @@
-import 'package:dart_core_orm/src/extensions/type_extension.dart';
+import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:dart_core_orm/src/orm.dart';
 
-import 'car.dart';
+import 'dude.dart';
 
 Future main() async {
   Orm.initialize(
@@ -21,22 +21,22 @@ Future main() async {
   // final dude = Dude()..name = 'Chester';
 
   // (Car).createTable(dryRun: true);
-  (Car).dropTable(
-    dryRun: true,
-    ifExists: true,
-    cascade: true,
-  );
+  // (Car).dropTable(
+  //   dryRun: false,
+  //   ifExists: true,
+  //   cascade: true,
+  // );
 
   // final result = await (Dude).select(['name']).execute();
-  // final result = await (Dude).select().where([
-  //   Equal(
-  //     key: 'name',
-  //     value: 'John',
-  //   ),
-  //   Between(
-  //     key: 'id',
-  //     value: [1, 5],
-  //   ),
-  // ]).execute();
-  // print(result);
+  final result = await (Dude).select().where([
+    Equal(
+      key: 'name',
+      value: 'John',
+    ),
+    Between(
+      key: 'id',
+      value: [1, 5],
+    ),
+  ]).toListAsync();
+  print(result);
 }

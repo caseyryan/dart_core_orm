@@ -277,15 +277,22 @@ class ChainedQuery {
     return '${_parts.join(' ')};';
   }
 
-  Future<List> execute() async {
+  Future<List> toListAsync() async {
+    final executeResult = await execute();
+    if (executeResult is List) {
+      return executeResult.map((e) {
+        return _type!.fromJson(e);
+      }).toList();
+    }
+    return [];
+  }
+
+  Future<Object?> execute() async {
     final query = _getQueryString();
     if (orm?.printQueries == true) {
       print('EXECUTING QUERY: $query');
     }
-    final List mappedResult = await orm?.executeSimpleQuery(query: query) as List? ?? [];
-    return mappedResult.map((e) {
-      return _type!.fromJson(e);
-    }).toList();
+    return await orm?.executeSimpleQuery(query: query);
   }
 }
 
