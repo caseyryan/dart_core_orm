@@ -68,13 +68,17 @@ class Dude {
 }
 ```
 
+____
+
 ### COLUMN ANNOTATIONS
 
 Here's the list of currently supported column annotations
 that can be used on any fields of your model classes
 
 `@PrimaryKeyColumn` - the primary key of the table. Usually used on `id` fields but not necessarily
+
 `@NotNullColumn` - Indicates that the column value cannot be null
+
 `@UniqueColumn` - Indicates that the column value must be unique. Also supports `autoIncrement` parameter which can  used on `int` fields to automatically increment the value on each insertion of a new row. 
 Usually you would use something like this:
 
@@ -84,6 +88,7 @@ Usually you would use something like this:
 @UniqueColumn(autoIncrement: true)
 int? id;  
 ```
+
 
 `@ForeignKeyColumn` - This annotation is useful to create a reference to another table. 
 for example you have a table of `Book` object each of which has a `authorId` field.
