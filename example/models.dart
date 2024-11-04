@@ -19,3 +19,29 @@ class Car {
   @LimitColumn(limit: 300)
   int? enginePower;
 }
+
+@CamelToSnake()
+class Book {
+  @PrimaryKeyColumn()
+  @NotNullColumn()
+  @UniqueColumn(autoIncrement: true)
+  int? id;
+
+  String? title;
+  @ForeignKeyColumn(
+    foreignKey: 'id',
+    referenceTableType: Author,
+  )
+  int? authorId;
+}
+
+@CamelToSnake()
+class Author {
+  @PrimaryKeyColumn()
+  @NotNullColumn()
+  @UniqueColumn(autoIncrement: true)
+  int? id;
+
+  String? firstName;
+  String? lastName;
+}

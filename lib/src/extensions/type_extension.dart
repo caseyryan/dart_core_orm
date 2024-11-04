@@ -181,6 +181,41 @@ extension TypeExtension on Type {
     return query;
   }
 
+  ChainedQuery insertMany<T>(List<T> inserts) {
+    final query = _toChainedQuery();
+    final tableName = toTableName();
+    final values = StringBuffer();
+    String? updateQuery;
+    for (var i = 0; i < inserts.length; i++) {
+      
+      final item = inserts[i] as Object;
+      final isLast = i == inserts.length - 1;
+      final insertQueries = item.toInsertQueries(
+        item.runtimeType,
+      );
+      if (i == 0) {
+        updateQuery = insertQueries!.updateQuery;
+        values.write(insertQueries.keys);
+        values.write(' VALUES ');
+      }
+      if (insertQueries != null) {
+        values.write(insertQueries.values);
+        if (!isLast) {
+          values.write(', ');
+        }
+      }
+    }
+    if (orm?.family == DatabaseFamily.postgres) {
+      query.add('INSERT INTO $tableName');
+      query.add(values.toString());
+      if (updateQuery?.isNotEmpty == true) {
+        query.add(updateQuery!);
+      }
+    }
+
+    return query;
+  }
+
   ChainedQuery select([
     List<String>? paramsNames,
   ]) {
@@ -356,7 +391,7 @@ class ChainedQuery {
     if (result is List && result.isNotEmpty) {
       if (result.first is Map) {
         return result.map((e) {
-          print(e);
+          // print(e);
           return type!.fromJson(e);
         }).toList();
       }
@@ -392,6 +427,7 @@ FieldDescription getFieldDescription({
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
   bool hasUniqueConstraints = otherColumnAnnotations.any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
+  
   final fieldDescription = FieldDescription(
     fieldName: fieldName,
     hasUniqueConstraints: hasUniqueConstraints,

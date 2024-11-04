@@ -68,6 +68,41 @@ class Dude {
 }
 ```
 
+### COLUMN ANNOTATIONS
+
+Here's the list of currently supported column annotations
+that can be used on any fields of your model classes
+
+`@PrimaryKeyColumn` - the primary key of the table. Usually used on `id` fields but not necessarily
+`@NotNullColumn` - Indicates that the column value cannot be null
+`@UniqueColumn` - Indicates that the column value must be unique. Also supports `autoIncrement` parameter which can  used on `int` fields to automatically increment the value on each insertion of a new row. 
+Usually you would use something like this:
+
+```dart
+@PrimaryKeyColumn()
+@NotNullColumn()
+@UniqueColumn(autoIncrement: true)
+int? id;  
+```
+
+`@ForeignKeyColumn` - This annotation is useful to create a reference to another table. 
+for example you have a table of `Book` object each of which has a `authorId` field.
+And the `authorId` field is a foreign key that references the `id` field of the `Author` table
+
+```dart
+class Book {
+  @ForeignKeyColumn(
+    /// the name of the field in other table that this field will reference
+    foreignKey: 'id',
+    /// you only need to provide the type of the reference table
+    /// it will be converted to the corresponding table name automatically 
+    /// regarding possible `@TableName` annotation (if any)
+    referenceTableType: Author,
+  )
+  int? authorId;
+}
+```
+
 ## CREATE TABLE
 
 You can create a table by using the `createTable` method

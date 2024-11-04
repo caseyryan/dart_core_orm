@@ -1,3 +1,4 @@
+import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:dart_core_orm/src/orm.dart';
 
 abstract class TableColumnAnnotation {
@@ -8,6 +9,34 @@ abstract class TableColumnAnnotation {
     String fieldName,
   );
   int get order;
+}
+
+class ForeignKeyColumn extends TableColumnAnnotation {
+  /// the foreign hame of the column in other table 
+  /// that this field is referencing
+  /// e.g. you add a foreign key column to a table on an
+  /// [authorId] field and you want to reference the [id] field
+  /// of the [Author] table
+  final String foreignKey;
+  
+  /// The type of the table you want to reference. 
+  final Type referenceTableType;
+
+  const ForeignKeyColumn({
+    required this.foreignKey,
+    required this.referenceTableType,
+  });
+
+  @override
+  String getValueForType(
+    Type type,
+    String fieldName,
+  ) {
+    return 'FOREIGN KEY ($fieldName) REFERENCES ${referenceTableType.toTableName()}($foreignKey)';
+  }
+
+  @override
+  int get order => 0;
 }
 
 class PrimaryKeyColumn extends TableColumnAnnotation {

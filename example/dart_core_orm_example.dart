@@ -1,7 +1,7 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:dart_core_orm/src/orm.dart';
 
-import 'car.dart';
+import 'models.dart';
 
 Future main() async {
   Orm.initialize(
@@ -41,7 +41,11 @@ Future main() async {
   // update();
   // select();
   // delete();
-  insertInstance();
+  // insertInstance();
+  // insertMany();
+  await (Book).createTable(
+    dryRun: true,
+  );
 }
 
 Future insertInstance() async {
@@ -53,6 +57,24 @@ Future insertInstance() async {
         conflictResolution: ConflictResolution.update,
       )
       .execute(
+        dryRun: true,
+        returnResult: true,
+      );
+  print(result);
+}
+
+Future insertMany() async {
+  final cars = [
+    Car()
+      ..id = 7
+      ..manufacturer = 'Skoda'
+      ..enginePower = 23,
+    Car()
+      ..manufacturer = 'Open'
+      ..enginePower = 112,
+  ];
+
+  final result = await (Car).insertMany(cars).execute(
         dryRun: false,
         returnResult: true,
       );
