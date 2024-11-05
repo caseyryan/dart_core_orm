@@ -78,9 +78,9 @@ class Orm {
       try {
         if (orm?.printQueries == true) {
           if (dryRun) {
-            print('EXECUTING SIMPLE QUERY (DRY RUN): $query');
+            print('(DRY RUN)>> $query');
           } else {
-            print('EXECUTING SIMPLE QUERY: $query');
+            print(query);
           }
         }
         if (dryRun) {

@@ -12,27 +12,39 @@ abstract class TableColumnAnnotation {
 }
 
 class ForeignKeyColumn extends TableColumnAnnotation {
-  /// the foreign hame of the column in other table 
+  /// the hame of the column in other table 
   /// that this field is referencing
   /// e.g. you add a foreign key column to a table on an
-  /// [authorId] field and you want to reference the [id] field
-  /// of the [Author] table
+  /// [author] field and you want to reference the [id] field
+  /// of the [Author] table. When making a query it will convert the 
+  /// field name (`author` in this example, to `author_id` or `authorId`) because 
+  /// the table is `(Author).toTableName(plural: false) -> author` (NOT pluralized) + `_id` or `Id` if the foreign model 
+  /// does not require snake case conversion
   final String foreignKey;
   
-  /// The type of the table you want to reference. 
+  /// [referenceTableType] The type of the table you want to reference. E.g. `Author` 
+  /// if will automatically convert the object to a foreign key to the `authors` table. 
+  /// See [foreignKey] field description for details
   final Type referenceTableType;
 
   const ForeignKeyColumn({
     required this.foreignKey,
     required this.referenceTableType,
+    this.cascade = true,
   });
+
+  /// [cascade] indicates whether the delete operation 
+  /// should be cascaded to the referenced table. Basically 
+  /// it will add ` ON DELETE CASCADE` to the end of the query
+  final bool cascade;
 
   @override
   String getValueForType(
     Type type,
     String fieldName,
   ) {
-    return 'FOREIGN KEY ($fieldName) REFERENCES ${referenceTableType.toTableName()}($foreignKey)';
+    final commandOnDelete = cascade ? ' ON DELETE CASCADE' : '';
+    return ', FOREIGN KEY ($fieldName) REFERENCES ${referenceTableType.toTableName()}($foreignKey)$commandOnDelete';
   }
 
   @override

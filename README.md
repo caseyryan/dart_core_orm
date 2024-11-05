@@ -33,40 +33,6 @@ Orm.initialize(
 );
 ```
 
-# Usage
-
-## SELECT
-
-```dart
-class Dude {
-  int? id;
-  String? name;
-}
-```
-
-and select its instances 
-
-```dart
-final result = await (Dude).select().toListAsync();
-```
-
-or select specific fields
-```dart
-final result = await (Dude).select(['name']).toListAsync();
-```
-
-The name of the table is retrieved from the class name by making in plural and converting it to snake case.
-so if the class name is `Dude` the table name will be `dudes`
-
-But you can also specify a different table name by using the `@TableName` annotation on a class
-
-```dart
-@TableName('buddies')
-class Dude {
-  int? id;
-  String? name;
-}
-```
 
 ____
 
@@ -104,9 +70,48 @@ class Book {
     /// regarding possible `@TableName` annotation (if any)
     referenceTableType: Author,
   )
-  int? authorId;
+  Author? author;
 }
 ```
+
+
+
+# Usage
+
+## SELECT
+
+```dart
+class Dude {
+  int? id;
+  String? name;
+}
+```
+
+and select its instances 
+
+```dart
+final result = await (Dude).select().toListAsync();
+```
+
+or select specific fields
+```dart
+final result = await (Dude).select(['name']).toListAsync();
+```
+
+The name of the table is retrieved from the class name by making in plural and converting it to snake case.
+so if the class name is `Dude` the table name will be `dudes`
+
+But you can also specify a different table name by using the `@TableName` annotation on a class
+
+```dart
+@TableName('buddies')
+class Dude {
+  int? id;
+  String? name;
+}
+```
+
+
 
 ## CREATE TABLE
 

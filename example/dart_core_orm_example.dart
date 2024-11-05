@@ -14,7 +14,7 @@ Future main() async {
     printQueries: true,
   );
 
-  await createTable();
+  // await createTable();
 
   // final result = await (Car).select(['name']).execute();
   // final result = await (Dude).select().where([
@@ -42,10 +42,7 @@ Future main() async {
   // select();
   // delete();
   // insertInstance();
-  // insertMany();
-  await (Book).createTable(
-    dryRun: true,
-  );
+  insertMany();
 }
 
 Future insertInstance() async {
@@ -64,17 +61,26 @@ Future insertInstance() async {
 }
 
 Future insertMany() async {
-  final cars = [
-    Car()
-      ..id = 7
-      ..manufacturer = 'Skoda'
-      ..enginePower = 23,
-    Car()
-      ..manufacturer = 'Open'
-      ..enginePower = 112,
+  final author = Author()
+    ..id = 7
+    ..firstName = 'Mihail'
+    ..lastName = 'Bulgakov';
+  final values = [
+    Book()
+      ..author = author
+      ..title = 'White Guard',
+    Book()
+      ..author = author
+      ..title = 'Master and Margarita',
+    Book()
+      ..author = author
+      // TODO: escape this
+      ..title = "Dog's Heart",
   ];
+  final record = ('Bob', 1);
+  print(record.$1);
 
-  final result = await (Car).insertMany(cars).execute(
+  final result = await (Book).insertMany(values).execute(
         dryRun: false,
         returnResult: true,
       );

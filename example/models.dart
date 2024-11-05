@@ -28,11 +28,20 @@ class Book {
   int? id;
 
   String? title;
+
+  /// This foreign key will actually transform the field in the database
+  /// in this case [author] will be transformed into [author_id] 
+  /// (by using (Author).toTableName(plural: false) + '_${fieldName}')
+  /// IMPORTANT: any foreign keys inside a model automatically transform 
+  /// a simple query to a transaction (where it's possible, not any database supports it)
+  /// to make sure everything is inserted correctly
+  /// before inserting the main model
   @ForeignKeyColumn(
-    foreignKey: 'id',
+    foreignKey: 'id', // turns `author` to `author_id` in this case
     referenceTableType: Author,
+    cascade: true,
   )
-  int? authorId;
+  Author? author;
 }
 
 @CamelToSnake()

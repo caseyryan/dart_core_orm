@@ -1,6 +1,7 @@
 import 'dart:mirrors';
 
 import 'package:dart_core_orm/dart_core_orm.dart';
+import 'package:dart_core_orm/src/annotations/table_column_annotations.dart';
 import 'package:dart_core_orm/src/orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
@@ -8,10 +9,23 @@ class InsertQueries {
   final String values;
   final String keys;
   final String? updateQuery;
+
   InsertQueries({
     required this.values,
     required this.keys,
     this.updateQuery,
+  });
+}
+
+class ForeignKeyedField {
+  final Object object;
+  final ForeignKeyColumn foreignKeyColumn;
+  final String fieldName;
+
+  ForeignKeyedField({
+    required this.object,
+    required this.foreignKeyColumn,
+    required this.fieldName,
   });
 }
 
@@ -23,12 +37,81 @@ extension ObjectExtensions on Object {
     );
   }
 
-  /// [onlyValues] can be used for inserting many items
-  /// where we don't need to build the whole query but just need
-  /// value
+  /// searches the current object for any foreign key annotations
+  /// and returns the objects that must be inserted before the current object
+  List<ForeignKeyedField> getForeignKeyObjects() {
+    final typeReflection = reflectType(runtimeType) as ClassMirror;
+    var classLevelKeyConvertor = typeReflection.tryGetKeyNameConverter();
+    final instanceReflection = reflect(this);
+    final result = <ForeignKeyedField>[];
+    for (var kv in typeReflection.declarations.entries) {
+      if (kv.value is! VariableMirror) {
+        continue;
+      }
+      final foreignKeyAnnotation = (kv.value as VariableMirror).getAnnotationsOfType<ForeignKeyColumn>().lastOrNull;
+      if (foreignKeyAnnotation == null) {
+        continue;
+      }
+      var variableLevelKeyConvertor = (kv.value as VariableMirror).tryGetKeyNameConverter(
+        variableName: kv.key.toName(),
+      );
+      final keyNameConverter = variableLevelKeyConvertor ?? classLevelKeyConvertor;
+
+      /// this is required because the foreign key conversion
+      /// needs to be done according to the variable naming in the model
+      var fieldSuffixName = foreignKeyAnnotation.foreignKey;
+      if (keyNameConverter != null) {
+        fieldSuffixName = keyNameConverter.convert(fieldSuffixName);
+        if (keyNameConverter is CamelToSnake) {
+          fieldSuffixName = '_$fieldSuffixName';
+        } else if (keyNameConverter is SnakeToCamel) {
+          fieldSuffixName = '_${fieldSuffixName.firstToUpperCase()}';
+        }
+      }
+      final fieldValue = instanceReflection.getField(kv.key).reflectee;
+
+      /// here we convert the type of the object to the table name (in singular form)
+      /// to prepend it to a foreign key name
+      var singleTableName = fieldValue.runtimeType.toTableName(
+        plural: false,
+      );
+      if (keyNameConverter != null) {
+        singleTableName = keyNameConverter.convert(singleTableName);
+      }
+
+      /// on this step, the field name is transformed into a foreign key name
+      /// e.g. a variable with a type of `Author` and the foreign key named `id`
+      /// will join and become either `author_id` or `authorId` depending
+      /// on the the key name converter
+      final fieldName = '$singleTableName$fieldSuffixName';
+      result.add(
+        ForeignKeyedField(
+          object: fieldValue,
+          fieldName: fieldName,
+          foreignKeyColumn: foreignKeyAnnotation,
+        ),
+      );
+
+      /// also recursively check internal objects as well
+      /// and insert them first because they will need to be inserted (updated) first
+      // TODO: support nested foreign keys
+      // result.insertAll(0, (fieldValue as Object).getForeignKeyObjects());
+    }
+
+    return result;
+  }
+
+  /// [object] can be either a [Type] or an instance.
+  /// [foreignKeyObjects] if provided, this will mean that a transaction is required 
+  /// and the foreign keys must form a special transaction
   InsertQueries? toInsertQueries(
-    Type type,
-  ) {
+    Object? object, {
+    List<ForeignKeyedField> foreignKeyObjects = const [],
+  }) {
+    if (object == null) {
+      return null;
+    }
+    final type = object is Type ? object : object.runtimeType;
     if (orm?.family == DatabaseFamily.postgres) {
       final json = toJson(
         includeNullValues: false,
@@ -36,17 +119,22 @@ extension ObjectExtensions on Object {
       final keys = <String>[];
       final values = <Object?>[];
       for (var kv in json.entries) {
-        // TODO: Support non primitive types and foreign keys
-        if (kv.key.runtimeType.isPrimitive) {
+        if (kv.value?.runtimeType.isPrimitive != false) {
           keys.add(kv.key);
           if (kv.value == null) {
             values.add('NULL');
           } else if (kv.value is String) {
-            values.add("'${kv.value}'");
+            values.add("'${(kv.value as String).sanitize()}'");
           } else {
             values.add(kv.value);
           }
+        } else if (kv.value != null) {
+          print(kv.value);
         }
+      }
+      if (foreignKeyObjects.isNotEmpty) {
+        keys.addAll(foreignKeyObjects.map((e) => e.fieldName));
+        values.addAll(foreignKeyObjects.map((e) => 'LASTVAL()'));
       }
       String valuesOnly = '(${values.join(', ')})';
       String keysOnly = '(${keys.join(', ')})';

@@ -172,7 +172,7 @@ extension TypeExtension on Type {
         (entry) {
           var value = entry.value;
           if (value is String) {
-            value = "'$value'";
+            value = "'${value.sanitize()}'";
           }
           return '${entry.key} = $value';
         },
@@ -181,35 +181,69 @@ extension TypeExtension on Type {
     return query;
   }
 
-  ChainedQuery insertMany<T>(List<T> inserts) {
+  ChainedQuery insertMany<T>(
+    List<T> inserts, {
+    ConflictResolution conflictResolution = ConflictResolution.error,
+  }) {
+    // TODO: implement conflict resolution
     final query = _toChainedQuery();
     final tableName = toTableName();
     final values = StringBuffer();
     String? updateQuery;
-    for (var i = 0; i < inserts.length; i++) {
-      
-      final item = inserts[i] as Object;
-      final isLast = i == inserts.length - 1;
-      final insertQueries = item.toInsertQueries(
-        item.runtimeType,
-      );
-      if (i == 0) {
-        updateQuery = insertQueries!.updateQuery;
-        values.write(insertQueries.keys);
-        values.write(' VALUES ');
-      }
-      if (insertQueries != null) {
-        values.write(insertQueries.values);
-        if (!isLast) {
-          values.write(', ');
+    if (orm?.family == DatabaseFamily.postgres) {
+      bool hasForeignKeys = false;
+      for (var i = 0; i < inserts.length; i++) {
+        final item = inserts[i] as Object;
+        final isLast = i == inserts.length - 1;
+
+        final foreignKeyObjects = item.getForeignKeyObjects();
+        hasForeignKeys = foreignKeyObjects.isNotEmpty;
+        if (hasForeignKeys) {
+          /// Create a transaction for foreign keys
+          // TODO: create queries with foreign keys
+          final tempQueries = <String>['BEGIN;'];
+          for (var fko in foreignKeyObjects) {
+            final fkoQuery = fko.object.insert(
+              conflictResolution: ConflictResolution.update,
+            );
+            tempQueries.add(fkoQuery.toQueryString());
+          }
+          final InsertQueries? insertQueries = item.toInsertQueries(
+            item,
+            foreignKeyObjects: foreignKeyObjects,
+          );
+          tempQueries.add('INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}');
+          updateQuery = insertQueries.updateQuery;
+          if (updateQuery?.isNotEmpty == true) {
+            tempQueries.add(updateQuery!);
+          }
+          tempQueries.add(';');
+          tempQueries.add('COMMIT');
+          query._parts.clear();
+          query._parts.addAll(tempQueries);
+        } else {
+          final insertQueries = item.toInsertQueries(
+            item,
+          );
+          if (i == 0) {
+            updateQuery = insertQueries!.updateQuery;
+            values.write(insertQueries.keys);
+            values.write(' VALUES ');
+          }
+          if (insertQueries != null) {
+            values.write(insertQueries.values);
+            if (!isLast) {
+              values.write(', ');
+            }
+          }
         }
       }
-    }
-    if (orm?.family == DatabaseFamily.postgres) {
-      query.add('INSERT INTO $tableName');
-      query.add(values.toString());
-      if (updateQuery?.isNotEmpty == true) {
-        query.add(updateQuery!);
+      if (!hasForeignKeys) {
+        query.add('INSERT INTO $tableName');
+        query.add(values.toString());
+        if (updateQuery?.isNotEmpty == true) {
+          query.add(updateQuery!);
+        }
       }
     }
 
@@ -247,7 +281,11 @@ extension TypeExtension on Type {
     return classMirror.isSubclassOf(reflectType(T) as ClassMirror);
   }
 
-  String toTableName() {
+  /// [plural] by default the table names are pluralized
+  /// e.g Author -> authors
+  String toTableName({
+    bool plural = true,
+  }) {
     final typeMirror = reflectType(this);
 
     final metadata = reflectType(this).metadata;
@@ -256,8 +294,9 @@ extension TypeExtension on Type {
         return e.reflectee.runtimeType.isSubclassOf<ClassAnnotation>();
       },
     ).toList();
+    final ending = plural ? 's' : '';
     return (classAnnotations.lastOrNull?.reflectee as TableName?)?.name ??
-        '${typeMirror.simpleName.toName().camelToSnake()}s';
+        '${typeMirror.simpleName.toName().camelToSnake()}$ending';
   }
 }
 
@@ -274,6 +313,10 @@ class ChainedQuery {
 
   void add(String part) {
     _parts.add(part);
+  }
+
+  void prepend(String part) {
+    _parts.insert(0, part);
   }
 
   String get queryType {
@@ -355,10 +398,10 @@ class ChainedQuery {
   }
 
   void printQuery() {
-    print('PREPARED QUERY: ${_getQueryString()}');
+    print('PREPARED QUERY: ${toQueryString()}');
   }
 
-  String _getQueryString() {
+  String toQueryString() {
     return '${_parts.join(' ')};';
   }
 
@@ -382,7 +425,7 @@ class ChainedQuery {
         add('RETURNING *');
       }
     }
-    final query = _getQueryString();
+    final query = toQueryString();
     final result = await orm?.executeSimpleQuery(
       query: query,
       timeout: timeout,
@@ -427,17 +470,25 @@ FieldDescription getFieldDescription({
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
   bool hasUniqueConstraints = otherColumnAnnotations.any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
-  
+
   final fieldDescription = FieldDescription(
     fieldName: fieldName,
     hasUniqueConstraints: hasUniqueConstraints,
     dataTypes: [
       databaseType,
-      ...otherColumnAnnotations.map(
-        (e) => e.getValueForType(
-          fieldType,
-          fieldName,
-        ),
+      ...otherColumnAnnotations.mapIndexed(
+        (int index, TableColumnAnnotation e) {
+          var value = e.getValueForType(
+            fieldType,
+            fieldName,
+          );
+          if (e is ForeignKeyColumn) {
+            if (index > 0) {
+              value = ', $value';
+            }
+          }
+          return value;
+        },
       )
     ],
   );
