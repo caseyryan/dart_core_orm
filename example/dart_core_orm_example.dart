@@ -42,7 +42,8 @@ Future main() async {
   // select();
   // delete();
   // insertInstance();
-  insertMany();
+  insertManyBooks();
+  // selectBooks();
 }
 
 Future insertInstance() async {
@@ -60,25 +61,23 @@ Future insertInstance() async {
   print(result);
 }
 
-Future insertMany() async {
+Future insertManyBooks() async {
   final author = Author()
     ..id = 7
     ..firstName = 'Mihail'
     ..lastName = 'Bulgakov';
   final values = [
+  //   Book()
+  //     ..author = author
+  //     ..title = 'White Guard',
+  //   Book()
+  //     ..author = author
+  //     ..title = 'Master and Margarita',
     Book()
       ..author = author
-      ..title = 'White Guard',
-    Book()
-      ..author = author
-      ..title = 'Master and Margarita',
-    Book()
-      ..author = author
-      // TODO: escape this
-      ..title = "Dog's Heart",
+      ..title = "Dog's Heart and cat's liver",
   ];
-  final record = ('Bob', 1);
-  print(record.$1);
+  
 
   final result = await (Book).insertMany(values).execute(
         dryRun: false,
@@ -119,6 +118,13 @@ Future select() async {
       value: 'Toyota',
     ),
   ]).execute(
+    returnResult: true,
+    dryRun: false,
+  );
+  print(result);
+}
+Future selectBooks() async {
+  final result = await (Book).select().execute(
     returnResult: true,
     dryRun: false,
   );

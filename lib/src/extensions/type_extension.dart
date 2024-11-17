@@ -202,16 +202,28 @@ extension TypeExtension on Type {
           /// Create a transaction for foreign keys
           // TODO: create queries with foreign keys
           final tempQueries = <String>['BEGIN;'];
+          tempQueries.add('WITH upsert AS ( ');
           for (var fko in foreignKeyObjects) {
             final fkoQuery = fko.object.insert(
               conflictResolution: ConflictResolution.update,
+              withUpsert: true,
             );
-            tempQueries.add(fkoQuery.toQueryString());
+            tempQueries.add(
+              fkoQuery.toQueryString(
+                /// semicolon not required because it's a common table expression 
+                /// before the INSERT query
+                addSemicolon: false,
+              ),
+            );
           }
           final InsertQueries? insertQueries = item.toInsertQueries(
             item,
             foreignKeyObjects: foreignKeyObjects,
+            withUpsert: true,
           );
+
+          /// closes WITH upsert AS (
+          tempQueries.add(')');
           tempQueries.add('INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}');
           updateQuery = insertQueries.updateQuery;
           if (updateQuery?.isNotEmpty == true) {
@@ -401,8 +413,10 @@ class ChainedQuery {
     print('PREPARED QUERY: ${toQueryString()}');
   }
 
-  String toQueryString() {
-    return '${_parts.join(' ')};';
+  String toQueryString({
+    bool addSemicolon = true,
+  }) {
+    return '${_parts.join(' ')}${addSemicolon ? ';' : ''}';
   }
 
   Future<List> toListAsync() async {

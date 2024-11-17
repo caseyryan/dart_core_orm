@@ -127,7 +127,7 @@ abstract class WhereOperation {
     /// don't require a value to compare with
     if (operation.canUseValue) {
       if (value is String) {
-        valueRepresentation = "'${(value as String).sanitize()}'";
+        valueRepresentation = (value as String).sanitize();
       } else if (value is List) {
         final list = value as List;
         if (operation == WhereOperationType.between) {
@@ -135,7 +135,7 @@ abstract class WhereOperation {
         }
         valueRepresentation = list.map((e) {
           if (e is String) {
-            return "'${e.sanitize()}'";
+            return e.sanitize();
           }
           return e;
         }).join(',');
