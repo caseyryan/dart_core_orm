@@ -210,7 +210,7 @@ extension TypeExtension on Type {
             );
             tempQueries.add(
               fkoQuery.toQueryString(
-                /// semicolon not required because it's a common table expression 
+                /// semicolon not required because it's a common table expression
                 /// before the INSERT query
                 addSemicolon: false,
               ),
@@ -466,6 +466,7 @@ FieldDescription getFieldDescription({
   required List<InstanceMirror> metadata,
 }) {
   List<TableColumnAnnotation> columnAnnotations = [];
+
   if (metadata.isNotEmpty) {
     /// row annotations are required to apply adjusted data types
     /// instead of the evaluated based on the field type
@@ -473,6 +474,20 @@ FieldDescription getFieldDescription({
       metadata.where((e) {
         return e.reflectee is TableColumnAnnotation;
       }).map((e) => e.reflectee),
+    );
+  }
+
+  /// Any "syntactic sugar" for the field can be processed here
+  final indexOfDefaultId = columnAnnotations.indexWhere((e) => e is DefaultId);
+  if (indexOfDefaultId != -1) {
+    columnAnnotations.removeAt(indexOfDefaultId);
+    columnAnnotations.insertAll(
+      indexOfDefaultId,
+      [
+        PrimaryKeyColumn(),
+        NotNullColumn(),
+        UniqueColumn(autoIncrement: true),
+      ],
     );
   }
   final databaseType = fieldType.toDatabaseType(
@@ -483,6 +498,7 @@ FieldDescription getFieldDescription({
     return e is! LimitColumn;
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
+
   bool hasUniqueConstraints = otherColumnAnnotations.any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
 
   final fieldDescription = FieldDescription(

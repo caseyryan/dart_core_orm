@@ -54,3 +54,12 @@ class Author {
   String? firstName;
   String? lastName;
 }
+
+
+class Reader {
+  @DefaultId()
+  int? id;
+
+  @NotNullColumn(defaultValue: 'John Doe')
+  String? fullName;
+}

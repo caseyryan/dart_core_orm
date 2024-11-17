@@ -42,8 +42,16 @@ Future main() async {
   // select();
   // delete();
   // insertInstance();
-  insertManyBooks();
+  // insertManyBooks();
   // selectBooks();
+  createTableWithDefaultId();
+}
+
+Future createTableWithDefaultId() async {
+  await (Reader).createTable(
+    dryRun: false,
+    ifNotExists: true,
+  );
 }
 
 Future insertInstance() async {
@@ -67,17 +75,16 @@ Future insertManyBooks() async {
     ..firstName = 'Mihail'
     ..lastName = 'Bulgakov';
   final values = [
-  //   Book()
-  //     ..author = author
-  //     ..title = 'White Guard',
-  //   Book()
-  //     ..author = author
-  //     ..title = 'Master and Margarita',
+    //   Book()
+    //     ..author = author
+    //     ..title = 'White Guard',
+    //   Book()
+    //     ..author = author
+    //     ..title = 'Master and Margarita',
     Book()
       ..author = author
       ..title = "Dog's Heart and cat's liver",
   ];
-  
 
   final result = await (Book).insertMany(values).execute(
         dryRun: false,
@@ -123,11 +130,12 @@ Future select() async {
   );
   print(result);
 }
+
 Future selectBooks() async {
   final result = await (Book).select().execute(
-    returnResult: true,
-    dryRun: false,
-  );
+        returnResult: true,
+        dryRun: false,
+      );
   print(result);
 }
 
