@@ -1,7 +1,7 @@
 import 'package:postgres/postgres.dart' as psql;
 
 Orm? _orm;
-Orm? get orm => _orm;
+Orm get orm => _orm!;
 
 class Orm {
   Orm._({
@@ -12,6 +12,7 @@ class Orm {
     required this.family,
     required this.isSecureConnection,
     required this.printQueries,
+    this.port = 5432,
   }) {
     if (family == DatabaseFamily.postgres) {
       _endpoint = psql.Endpoint(
@@ -19,6 +20,7 @@ class Orm {
         database: database,
         username: username,
         password: password,
+        port: port,
       );
       _settings = psql.ConnectionSettings(
         sslMode:
@@ -33,6 +35,7 @@ class Orm {
     required String database,
     required String password,
     required String username,
+    int port = 5432,
     required DatabaseFamily family,
     required bool isSecureConnection,
     bool printQueries = false,
@@ -45,10 +48,12 @@ class Orm {
       family: family,
       isSecureConnection: isSecureConnection,
       printQueries: printQueries,
+      port: port,
     );
   }
 
   final String host;
+  final int port;
   final String database;
   final String password;
   final String username;
@@ -66,6 +71,21 @@ class Orm {
       _endpoint,
       settings: _settings,
     );
+  }
+
+  Future createDatabase({
+    required String database,
+    bool dryRun = false,
+    Duration? timeout,
+  }) async {
+    if (family == DatabaseFamily.postgres) {
+      /// is the table exists it will generate an error but it can be ignored
+      await executeSimpleQuery(
+        query: 'CREATE DATABASE $database;',
+        timeout: timeout,
+        dryRun: dryRun,
+      );
+    }
   }
 
   Future<Object?> executeSimpleQuery({

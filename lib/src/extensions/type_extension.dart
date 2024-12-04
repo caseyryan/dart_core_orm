@@ -116,7 +116,7 @@ extension TypeExtension on Type {
     final tableName = toTableName();
     final typeMirror = reflectType(query.type!);
     final classMirror = typeMirror as ClassMirror;
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       query.add('CREATE TABLE');
       if (ifNotExists) {
         query.add('IF NOT EXISTS');

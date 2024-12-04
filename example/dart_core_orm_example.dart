@@ -4,15 +4,25 @@ import 'package:dart_core_orm/src/orm.dart';
 import 'models.dart';
 
 Future main() async {
+  /// if there is no custom database yet, you can connect to the 
+  /// postgres database (with the password you have created on first launch, in this case 'default_pwd')
+  /// and after the database is initialized create your own database with the name 
+  /// credentials, and user access you need
   Orm.initialize(
-    database: 'postgres',
-    username: 'postgres',
-    password: '',
+    database: 'default_db',
+    username: 'default_db_user',
+    password: 'default_pwd',
     host: 'localhost',
     family: DatabaseFamily.postgres,
     isSecureConnection: false,
     printQueries: true,
+    port: 5455,
   );
+  await (Car).createTable(
+    dryRun: false,
+    ifNotExists: true,
+  );
+  
 
   // await createTable();
 
@@ -44,7 +54,7 @@ Future main() async {
   // insertInstance();
   // insertManyBooks();
   // selectBooks();
-  createTableWithDefaultId();
+  // createTableWithDefaultId();
 }
 
 Future createTableWithDefaultId() async {
