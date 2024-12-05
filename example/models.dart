@@ -63,3 +63,24 @@ class Reader {
   @NotNullColumn(defaultValue: 'John Doe')
   String? fullName;
 }
+
+
+
+@JsonIncludeParentFields()
+class User extends BaseModel {
+  String? firstName;
+
+  @UniqueColumn()
+  String? email;
+}
+
+class BaseModel {
+  @DefaultId()
+  int? id;
+
+  @NotNullColumn()
+  DateTime? createdAt;
+
+  @NotNullColumn()
+  DateTime? updatedAt;
+}

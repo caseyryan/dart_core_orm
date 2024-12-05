@@ -1,13 +1,18 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:dart_core_orm/src/orm.dart';
 
 abstract class TableColumnAnnotation {
   const TableColumnAnnotation();
 
+  /// [alternativeParams] sometimes you might not be happy with
+  /// what the ORM adds by default to the column description.
+  /// In this case you can provide your own params.
+  /// They will override all default stuff
+  /// e.g. updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
   String getValueForType(
     Type type,
-    String fieldName,
-  );
+    String fieldName, {
+    String? alternativeParams,
+  });
   int get order;
 }
 
@@ -41,8 +46,11 @@ class ForeignKeyColumn extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    assert(alternativeParams == null,
+        'alternativeParams is not supported for this annotation');
     final commandOnDelete = cascade ? ' ON DELETE CASCADE' : '';
     return ', FOREIGN KEY ($fieldName) REFERENCES ${referenceTableType.toTableName()}($foreignKey)$commandOnDelete';
   }
@@ -57,12 +65,16 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
     if (type != int && type != String && type != bool && type != DateTime) {
       return '';
     }
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       return 'PRIMARY KEY';
     }
     return '';
@@ -70,7 +82,7 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
 
   @override
   int get order {
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       return 10;
     }
     return 10;
@@ -87,9 +99,16 @@ class NotNullColumn extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
-    if (orm?.family == DatabaseFamily.postgres) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    if (orm.family == DatabaseFamily.postgres) {
+      if (type == DateTime) {
+        return ' TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP';
+      }
       var defaultsTo = '';
       if (defaultValue != null) {
         if (defaultValue is String) {
@@ -105,7 +124,7 @@ class NotNullColumn extends TableColumnAnnotation {
 
   @override
   int get order {
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       return 0;
     }
     return 0;
@@ -123,9 +142,13 @@ class LimitColumn extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
-    if (orm?.family == DatabaseFamily.postgres) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    if (orm.family == DatabaseFamily.postgres) {
       if (type == String) {
         return 'VARCHAR($limit)';
       }
@@ -138,7 +161,7 @@ class LimitColumn extends TableColumnAnnotation {
 
   @override
   int get order {
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       return 1;
     }
     return 0;
@@ -157,8 +180,11 @@ class DefaultId extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    assert(alternativeParams == null,
+        'alternativeParams is not supported for this annotation');
     return '';
   }
 
@@ -178,9 +204,13 @@ class UniqueColumn extends TableColumnAnnotation {
   @override
   String getValueForType(
     Type type,
-    String fieldName,
-  ) {
-    if (orm?.family == DatabaseFamily.postgres) {
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    if (orm.family == DatabaseFamily.postgres) {
       if (autoIncrement && type == int) {
         return 'SERIAL';
       }
@@ -191,7 +221,7 @@ class UniqueColumn extends TableColumnAnnotation {
 
   @override
   int get order {
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       return 0;
     }
     return 0;

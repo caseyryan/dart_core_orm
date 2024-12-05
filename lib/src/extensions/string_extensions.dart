@@ -2,7 +2,7 @@ import 'package:dart_core_orm/src/orm.dart';
 
 extension StringExtensions on String {
   String sanitize() {
-    DatabaseFamily? family = orm?.family;
+    DatabaseFamily? family = orm.family;
     if (family == null) {
       return this;
     }

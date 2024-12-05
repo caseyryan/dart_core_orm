@@ -1,12 +1,12 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:dart_core_orm/src/orm.dart';
+import 'package:dart_core_orm/src/operations/triggers.dart';
 
 import 'models.dart';
 
 Future main() async {
-  /// if there is no custom database yet, you can connect to the 
+  /// if there is no custom database yet, you can connect to the
   /// postgres database (with the password you have created on first launch, in this case 'default_pwd')
-  /// and after the database is initialized create your own database with the name 
+  /// and after the database is initialized create your own database with the name
   /// credentials, and user access you need
   Orm.initialize(
     database: 'default_db',
@@ -17,45 +17,46 @@ Future main() async {
     isSecureConnection: false,
     printQueries: true,
     port: 5455,
+    // дописать оборачивание в двойные кавычки для postgres
+    useCaseSensitiveNames: true,
   );
-  await (Car).createTable(
-    dryRun: false,
-    ifNotExists: true,
-  );
-  
 
-  // await createTable();
+  final user = User()
+    ..firstName = 'John Doed'
+    ..email = 'john@doe.com';
+  // final foundUser = await user.find().execute(returnResult: true);
+  // print(foundUser);
 
-  // final result = await (Car).select(['name']).execute();
-  // final result = await (Dude).select().where([
-  //   Equal(
-  //     key: 'name',
-  //     value: 'John',
-  //   ),
-  //   Between(
-  //     key: 'id',
-  //     value: [1, 5],
-  //   ),
-  // ]).toListAsync();
-  // print(result);
+  // return;
+  final result = await user.insert().execute(
+        dryRun: false,
+        returnResult: true,
+      );
+  if (result is OrmError) {
+    if (result.type == OrmErrorType.tableNotExists) {
+      await (User).createTable(
+        dryRun: false,
+        /// In this case it will create a trigger that will 
+        /// set updatedAt field to the current timestamp 
+        /// when a row is inserted or updated
+        createTriggerCode: createUpdatedAtTriggerCode(
+          tableName: (User).toTableName(),
+          columnName: 'updatedAt',
+        ),
+      );
+      final result = await user.upsert().execute(
+        dryRun: false,
+        returnResult: true,
+      );
+      print(result);
+    }
+  }
 
-  // final car = Car()
-  //   ..id = 7
-  //   ..manufacturer = 'Lada'
-  //   ..enginePower = 120;
-  // final result = await car
-  //     .insert(
-  //       conflictResolution: ConflictResolution.update,
-  //     )
-  //     .execute(dryRun: false);
-  // update();
-  // select();
-  // delete();
-  // insertInstance();
-  // insertManyBooks();
-  // selectBooks();
-  // createTableWithDefaultId();
+
+  // await (User).createTable(dryRun: true);
 }
+
+
 
 Future createTableWithDefaultId() async {
   await (Reader).createTable(

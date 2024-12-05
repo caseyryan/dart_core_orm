@@ -20,7 +20,7 @@ extension TypeExtension on Type {
     String fieldName,
   ) {
     if (this == String) {
-      if (orm?.family == DatabaseFamily.postgres) {
+      if (orm.family == DatabaseFamily.postgres) {
         if (columnAnnotations.isNotEmpty) {
           final limitAnnotation = columnAnnotations.lastWhereOrNull(
             (e) => e is LimitColumn,
@@ -34,7 +34,7 @@ extension TypeExtension on Type {
       }
     }
     if (this == int) {
-      if (orm?.family == DatabaseFamily.postgres) {
+      if (orm.family == DatabaseFamily.postgres) {
         final limitAnnotation = columnAnnotations.lastWhereOrNull(
           (e) => e is LimitColumn,
         );
@@ -56,7 +56,7 @@ extension TypeExtension on Type {
       }
     }
     if (this == bool) {
-      if (orm?.family == DatabaseFamily.postgres) {
+      if (orm.family == DatabaseFamily.postgres) {
         return 'BOOLEAN';
       }
     }
@@ -75,7 +75,7 @@ extension TypeExtension on Type {
   }) async {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       if (ifExists) {
         query.add('DROP TABLE IF EXISTS $tableName');
       } else {
@@ -108,9 +108,12 @@ extension TypeExtension on Type {
 
   /// [dryRun] is used to only show the query itself not actually
   /// executing it
+  /// [createTriggerCode] allows you to create some triggers for a table
+  /// if necessary. To know the table creation query use dryRun first
   Future createTable({
     bool dryRun = false,
     bool ifNotExists = true,
+    String? createTriggerCode,
   }) async {
     final query = _toChainedQuery();
     final tableName = toTableName();
@@ -127,6 +130,10 @@ extension TypeExtension on Type {
       final fieldDescriptions = classMirror.getFieldsDescription(query.type!);
       query.add(fieldDescriptions.join(', '));
       query.add(')');
+      if (createTriggerCode != null) {
+        query.add(';');
+        query.add(createTriggerCode);
+      }
     }
     if (!dryRun) {
       final result = await query.execute(dryRun: dryRun);
@@ -162,7 +169,7 @@ extension TypeExtension on Type {
   ChainedQuery update<T>(T update) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       query.add('UPDATE $tableName');
       final json = (update as Object).toJson(
         includeNullValues: false,
@@ -190,7 +197,7 @@ extension TypeExtension on Type {
     final tableName = toTableName();
     final values = StringBuffer();
     String? updateQuery;
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       bool hasForeignKeys = false;
       for (var i = 0; i < inserts.length; i++) {
         final item = inserts[i] as Object;
@@ -267,7 +274,7 @@ extension TypeExtension on Type {
   ]) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       query.add('SELECT');
       if (paramsNames?.isNotEmpty != true) {
         query.add('*');
@@ -282,7 +289,7 @@ extension TypeExtension on Type {
   ChainedQuery delete() {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm?.family == DatabaseFamily.postgres) {
+    if (orm.family == DatabaseFamily.postgres) {
       query.add('DELETE FROM $tableName');
     }
     return query;
@@ -353,7 +360,13 @@ class ChainedQuery {
     return '';
   }
 
+  /// With some type of conflic resolutions 
+  /// RETURNING might already be added to the query
+  /// previously so adding it one more time will result in an error
   bool get _canReturnResult {
+    if (toQueryString().contains('RETURNING')) {
+      return false;
+    }
     switch (queryType) {
       case 'INSERT':
       case 'UPDATE':
@@ -440,7 +453,7 @@ class ChainedQuery {
       }
     }
     final query = toQueryString();
-    final result = await orm?.executeSimpleQuery(
+    final result = await orm.executeSimpleQuery(
       query: query,
       timeout: timeout,
       dryRun: dryRun,
@@ -454,6 +467,8 @@ class ChainedQuery {
       }
 
       /// This might contain errors as String objects
+      return result;
+    } else if (result is OrmError) {
       return result;
     }
     return [];

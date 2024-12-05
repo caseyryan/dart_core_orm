@@ -12,6 +12,7 @@ class Orm {
     required this.family,
     required this.isSecureConnection,
     required this.printQueries,
+    required this.useCaseSensitiveNames,
     this.port = 5432,
   }) {
     if (family == DatabaseFamily.postgres) {
@@ -38,6 +39,7 @@ class Orm {
     int port = 5432,
     required DatabaseFamily family,
     required bool isSecureConnection,
+    required bool useCaseSensitiveNames,
     bool printQueries = false,
   }) {
     return Orm._(
@@ -48,6 +50,7 @@ class Orm {
       family: family,
       isSecureConnection: isSecureConnection,
       printQueries: printQueries,
+      useCaseSensitiveNames: useCaseSensitiveNames,
       port: port,
     );
   }
@@ -59,6 +62,13 @@ class Orm {
   final String username;
   final DatabaseFamily family;
   final bool isSecureConnection;
+  /// [useCaseSensitiveNames] in some databases like PostgreSQL
+  /// the names of tables and columns are lowercase by default. 
+  /// If you want to use case sensitive names, set this to true
+  /// in this case all row and table names will be wrapped into double quotes
+  /// for postgres and be case sensitive
+  /// Where it's not necessary, this parameter will be ignored
+  final bool useCaseSensitiveNames;
 
   /// if true, it will print all executing queries
   final bool printQueries;
@@ -96,7 +106,7 @@ class Orm {
     if (family == DatabaseFamily.postgres) {
       psql.Connection? conn;
       try {
-        if (orm?.printQueries == true) {
+        if (orm.printQueries == true) {
           if (dryRun) {
             print('(DRY RUN)>> $query');
           } else {
@@ -131,11 +141,25 @@ class Orm {
         }
       } on psql.ServerException catch (e) {
         print(e);
-        return [
-          e.message,
-        ];
+        OrmErrorType? type;
+        switch (e.code) {
+          case '42P01':
+            type = OrmErrorType.tableNotExists;
+            break;
+          case '23505':
+            type = OrmErrorType.uniqueConstraintViolation;
+            break;
+        }
+
+        return OrmError(
+          type: type,
+          message: e.message,
+          code: e.code,
+        );
       } catch (e) {
-        print(e);
+        return OrmError(
+          message: e.toString(),
+        );
       } finally {
         await conn?.close();
       }
@@ -146,4 +170,24 @@ class Orm {
 
 enum DatabaseFamily {
   postgres,
+}
+
+class OrmError {
+  String? message;
+  String? code;
+  OrmErrorType? type;
+
+  OrmError({
+    this.message,
+    this.code,
+    this.type,
+  });
+}
+
+enum OrmErrorType {
+  tableNotExists,
+  tableAlreadyExists,
+  databaseNotExists,
+  databaseAlreadyExists,
+  uniqueConstraintViolation,
 }

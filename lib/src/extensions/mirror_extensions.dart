@@ -17,7 +17,15 @@ extension ClassMirrorExtensions on ClassMirror {
         convertedKeys[keyConversionResult.oldKey] = keyConversionResult.newKey;
       },
     );
-    final fields = declarations.entries
+    Map<Symbol, DeclarationMirror> tempDeclarations = {};
+    /// Parent declarations will be included if the class 
+    /// has the [JsonIncludeParentFields] annotation from reflect_buddy
+    /// this may come in handy when you want all base models have the same functionality
+    final possibleParentDeclarations = includeParentDeclarationsIfNecessary();
+    tempDeclarations.addAll(possibleParentDeclarations);
+    tempDeclarations.addAll(declarations);
+
+    final fields = tempDeclarations.entries
         .where(
           (e) =>
               e.value is VariableMirror &&
