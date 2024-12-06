@@ -78,9 +78,18 @@ class BaseModel {
   @DefaultId()
   int? id;
 
-  @NotNullColumn()
+  @DateColumn(
+    defaultValue: DateTimeDefaultValue.currentTimestamp,
+    dateType: DateType.timestamp,
+  )
   DateTime? createdAt;
 
-  @NotNullColumn()
+  @DateColumn(
+    defaultValue: DateTimeDefaultValue.currentTimestamp,
+    dateType: DateType.timestamp,
+  )
   DateTime? updatedAt;
+
+  @NotNullColumn(defaultValue: false)
+  bool? isDeleted;
 }

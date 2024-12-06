@@ -182,6 +182,14 @@ class OrmError {
     this.code,
     this.type,
   });
+
+  bool get isRecordAlreadyExists {
+    return type == OrmErrorType.uniqueConstraintViolation;
+  }
+
+  bool get isTableNotExists {
+    return type == OrmErrorType.tableNotExists;
+  }
 }
 
 enum OrmErrorType {
@@ -190,4 +198,17 @@ enum OrmErrorType {
   databaseNotExists,
   databaseAlreadyExists,
   uniqueConstraintViolation,
+}
+
+class QueryResult<T> {
+  QueryResult({
+    required this.value,
+    required this.error,
+  });
+  final T? value;
+  final OrmError? error;
+
+  bool get isError {
+    return error != null;
+  }
 }

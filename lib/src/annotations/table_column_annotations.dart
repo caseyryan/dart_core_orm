@@ -89,6 +89,90 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
   }
 }
 
+enum DateType {
+  date,
+  time,
+  timestamp,
+  timestampWithZone;
+
+  String toDatabaseType(DateTimeDefaultValue defaultValue,) {
+    if (orm.family == DatabaseFamily.postgres) {
+      switch (this) {
+        case DateType.date:
+          return 'DATE${defaultValue.toDatabaseType()}';
+        case DateType.time:
+          return 'TIME${defaultValue.toDatabaseType()}';
+        case DateType.timestamp:
+          return 'TIMESTAMP WITHOUT TIME ZONE${defaultValue.toDatabaseType()}';
+        case DateType.timestampWithZone:
+          return 'TIMESTAMP WITH TIME ZONE${defaultValue.toDatabaseType()}';
+      }
+    }
+    throw Exception('${orm.family} is not supported');
+  }
+}
+
+enum DateTimeDefaultValue {
+  currentDate,
+  currentTime,
+  currentTimestamp,
+  localTimestamp,
+  empty;
+
+  String toDatabaseType() {
+    if (orm.family  == DatabaseFamily.postgres) {
+      switch (this) {
+        case DateTimeDefaultValue.currentDate:
+          return ' DEFAULT CURRENT_DATE';
+        case DateTimeDefaultValue.currentTime:
+          return ' DEFAULT CURRENT_TIME';
+        case DateTimeDefaultValue.currentTimestamp:
+          return ' DEFAULT CURRENT_TIMESTAMP';
+        case DateTimeDefaultValue.localTimestamp:
+          return ' DEFAULT LOCALTIMESTAMP';
+        case DateTimeDefaultValue.empty:
+          return '';
+      }
+    }
+    throw Exception('${orm.family} is not supported');
+  }
+}
+
+class DateColumn extends TableColumnAnnotation {
+  const DateColumn({
+    this.defaultValue = DateTimeDefaultValue.empty,
+    required this.dateType,
+  });   
+  final DateTimeDefaultValue defaultValue; 
+  final DateType dateType;
+
+  @override
+  String getValueForType(
+    Type type,
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (type != DateTime) {
+      throw Exception('`DateColumn` can be used with `DateTime` type only. [$type] is not supported');
+    }
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    if (orm.family == DatabaseFamily.postgres) {
+      return dateType.toDatabaseType(defaultValue);
+    }
+    return '';
+  } 
+  @override
+  int get order {
+    if (orm.family == DatabaseFamily.postgres) {
+      return 0;
+    }
+    return 0;
+  }
+}
+
+
 class NotNullColumn extends TableColumnAnnotation {
   const NotNullColumn({
     this.defaultValue,
@@ -107,13 +191,18 @@ class NotNullColumn extends TableColumnAnnotation {
     }
     if (orm.family == DatabaseFamily.postgres) {
       if (type == DateTime) {
+        print('You used `NotNullColumn` on a `DateTime` field in $type. To have more flexibility use `DateColumn` anotation instead');
         return ' TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP';
       }
       var defaultsTo = '';
       if (defaultValue != null) {
         if (defaultValue is String) {
           defaultsTo = " DEFAULT '$defaultValue'";
-        } else {
+        } 
+        else if (defaultValue is bool) {
+          defaultsTo = " DEFAULT ${defaultValue.toString().toUpperCase()}";
+        }
+        else {
           defaultsTo = ' DEFAULT $defaultValue';
         }
       }

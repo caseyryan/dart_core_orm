@@ -20,53 +20,53 @@ Future main() async {
     // дописать оборачивание в двойные кавычки для postgres
     useCaseSensitiveNames: true,
   );
-  // await (User).createTable(
-  //   dryRun: false,
+  await (User).createTable(
+    dryRun: false,
 
-  //   /// In this case it will create a trigger that will
-  //   /// set updatedAt field to the current timestamp
-  //   /// when a row is inserted or updated
-  //   createTriggerCode: createUpdatedAtTriggerCode(
-  //     tableName: (User).toTableName(),
-  //     columnName: 'updatedAt',
-  //   ),
-  // );
+    /// In this case it will create a trigger that will
+    /// set updatedAt field to the current timestamp
+    /// when a row is inserted or updated
+    createTriggerCode: createUpdatedAtTriggerCode(
+      tableName: (User).toTableName(),
+      columnName: 'updatedAt',
+    ),
+  );
 
-  // return;
+  return;
 
   final user = User()
     ..firstName = 'Sifon Boroda'
+    ..isDeleted = false
     ..email = 'sifa@dormoed.com';
-  // final foundUser = await user.find().execute(returnResult: true);
-  // print(foundUser);
+  final queryResult = await user.tryFind<User>();
+  print(queryResult.value);
 
-  // return;
-  final result = await user.insert().execute(
-  // final result = await user.upsert().execute(
-        dryRun: false,
-        returnResult: true,
-      );
-  return;
-  if (result is OrmError) {
-    if (result.type == OrmErrorType.tableNotExists) {
-      await (User).createTable(
-        dryRun: false,
+  // final result = await user.insert().execute(
+      //   final result = await user.upsert().execute(
+      //   dryRun: false,
+      //   returnResult: true,
+      // );
+  // print(result);
+  // if (queryResult.isError) {
+  //   if (queryResult.error!.isTableNotExists) {
+  //     await (User).createTable(
+  //       dryRun: false,
 
-        /// In this case it will create a trigger that will
-        /// set updatedAt field to the current timestamp
-        /// when a row is inserted or updated
-        createTriggerCode: createUpdatedAtTriggerCode(
-          tableName: (User).toTableName(),
-          columnName: 'updatedAt',
-        ),
-      );
-      final result = await user.upsert().execute(
-            dryRun: false,
-            returnResult: true,
-          );
-      print(result);
-    }
-  }
+  //       /// In this case it will create a trigger that will
+  //       /// set updatedAt field to the current timestamp
+  //       /// when a row is inserted or updated
+  //       createTriggerCode: createUpdatedAtTriggerCode(
+  //         tableName: (User).toTableName(),
+  //         columnName: 'updatedAt',
+  //       ),
+  //     );
+      // final result = await user.upsert().execute(
+      //       dryRun: false,
+      //       returnResult: true,
+      //     );
+      // print(result);
+    // }
+  // }
 
   // await (User).createTable(dryRun: true);
 }

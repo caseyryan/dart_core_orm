@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:mirrors';
 
 import 'package:dart_core_orm/dart_core_orm.dart';
@@ -29,6 +28,21 @@ class ForeignKeyedField {
 }
 
 extension ObjectExtensions on Object {
+  Object? tryConvertValueToDatabaseCompatible() {
+    if (orm.family == DatabaseFamily.postgres) {
+      if (this is String) {
+        final str = (this as String).sanitize();
+        if (str.startsWith("'") && str.endsWith("'")) {
+          return str;
+        }
+        return "'$str'";
+      } else if (this is bool) {
+        return this == true ? 'TRUE' : 'FALSE';
+      }
+    }
+    throw 'Other types are not supported yet';
+  }
+
   /// Update or insert
   ChainedQuery upsert() {
     return insert(
@@ -127,10 +141,9 @@ extension ObjectExtensions on Object {
           keys.add(kv.key);
           if (kv.value == null) {
             values.add('NULL');
-          } else if (kv.value is String) {
-            values.add((kv.value as String).sanitize());
           } else {
-            values.add(kv.value);
+            values.add(
+                (kv.value as Object).tryConvertValueToDatabaseCompatible());
           }
         } else if (kv.value != null) {
           print(kv.value);
@@ -142,11 +155,12 @@ extension ObjectExtensions on Object {
       );
       final uniqueColumns =
           fieldDescription.where((e) => e.hasUniqueConstraints).toList();
-      final stringBuffer = StringBuffer();
+      final parts = <String>[];
       final uniqueKeys = keys
           .where((e) => uniqueColumns.any((c) => c.fieldName == e))
           .toList();
-      final uKeys = uniqueKeys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ');
+      final uKeys =
+          uniqueKeys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ');
 
       if (foreignKeyObjects.isNotEmpty) {
         keys.addAll(foreignKeyObjects.map((e) => e.fieldName));
@@ -160,44 +174,53 @@ extension ObjectExtensions on Object {
         }
       }
       String valuesOnly = '(${values.join(', ')})';
-      String keysOnly = '(${keys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ')})';
+      String keysOnly =
+          '(${keys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ')})';
       if (uniqueColumns.isNotEmpty) {
         /// because update only makes sense when there is a unique constraint
         if (uniqueKeys.isNotEmpty) {
-          stringBuffer.write('ON CONFLICT ($uKeys) DO UPDATE SET ');
+          parts.add(' ON CONFLICT ($uKeys) DO UPDATE SET ');
 
           for (var i = 0; i < keys.length; i++) {
             final keyName = keys[i];
             if (uniqueKeys.contains(keys[i])) {
               continue;
             }
-            stringBuffer.write('${keyName.wrapInDoubleQuotesIfNeeded()} = EXCLUDED.${keyName.wrapInDoubleQuotesIfNeeded()}');
-            if (i != uniqueKeys.length - 1) {
-              stringBuffer.write(', ');
+            parts.add(
+                '${keyName.wrapInDoubleQuotesIfNeeded()} = EXCLUDED.${keyName.wrapInDoubleQuotesIfNeeded()}');
+            if (i < keys.length - 1) {
+              parts.add(', ');
             }
           }
-          stringBuffer.write(' RETURNING $uKeys');
+          if (parts.isNotEmpty && parts.last == ', ') {
+            parts.removeLast();
+          }
+          parts.add(' RETURNING $uKeys');
         }
       }
       return InsertQueries(
         values: valuesOnly,
         keys: keysOnly,
-        updateQuery: stringBuffer.toString(),
+        updateQuery: parts.join(),
       );
     }
     return null;
   }
 
-  /// Simple find using AND operations for all set fields
+  /// A simple wrapper for SELECT using AND operations for all set fields
   /// If you need a more complicated query
   /// use runtimeType.select().where([...]) where you can
   /// pass other Where clauses
   /// or use direct database query using orm?.executeSimpleQuery
-  ChainedQuery find() {
+  /// 
+  /// [T] can be a list of objects or a single object
+  Future<QueryResult<T>> tryFind<T>({
+    bool dryRun = false,
+  }) async {
     if (orm.family == DatabaseFamily.postgres) {
       final json = toJson(
         includeNullValues: false,
-      ) as Map;
+      ) as Map<String, Object?>;
       final equalsClause = <WhereOperation>[];
       for (var kv in json.entries) {
         equalsClause.add(
@@ -209,10 +232,33 @@ extension ObjectExtensions on Object {
         );
       }
       if (equalsClause.isNotEmpty) {
-        return runtimeType.select().where(equalsClause);
+        final query = runtimeType.select().where(equalsClause);
+        final value = await query.execute(dryRun: dryRun);
+        if (value is List) {
+          if (T.isList) {
+            return QueryResult(
+              value: value as T,
+              error: null,
+            );
+          }
+          if (value.length == 1) {
+            return QueryResult(
+              value: value.first as T,
+              error: null,
+            );
+          }
+        } else if (value is OrmError) {
+          return QueryResult(
+            value: null,
+            error: value,
+          );
+        }
       }
     }
-    return ChainedQuery()..type = runtimeType;
+    return QueryResult(
+      value: null,
+      error: null,
+    );
   }
 
   /// [conflictResolution] is used to specify how to handle conflicts

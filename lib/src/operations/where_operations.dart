@@ -101,13 +101,15 @@ class Like extends WhereOperation {
         );
 }
 
+
+
 abstract class WhereOperation {
   WhereOperation({
-    required this.key,
+    required String key,
     this.value,
     required this.operation,
     required this.nextJoiner,
-  });
+  }) : key = key.wrapInDoubleQuotesIfNeeded();
 
   /// column name
   final String key;
@@ -126,22 +128,21 @@ abstract class WhereOperation {
     /// Som operations like IS NULL, IS NOT NULL
     /// don't require a value to compare with
     if (operation.canUseValue) {
-      if (value is String) {
-        valueRepresentation = (value as String).sanitize();
-      } else if (value is List) {
+      if (value is List) {
         final list = value as List;
         if (operation == WhereOperationType.between) {
           return '$key ${operation.operation} ${list.first} AND ${list.last}';
         }
         valueRepresentation = list.map((e) {
-          if (e is String) {
-            return e.sanitize();
-          }
-          return e;
+          // if (e is String) {
+          //   return e.sanitize();
+          // }
+          return (e as Object).tryConvertValueToDatabaseCompatible();
         }).join(',');
         valueRepresentation = '($valueRepresentation)';
-      } else {
-        valueRepresentation = value;
+      } 
+      else {
+        valueRepresentation = (value as Object).tryConvertValueToDatabaseCompatible();
       }
     } else {
       valueRepresentation = '';

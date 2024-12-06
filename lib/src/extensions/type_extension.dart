@@ -4,11 +4,17 @@ import 'dart:mirrors';
 
 import 'package:collection/collection.dart';
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:dart_core_orm/src/annotations/table_column_annotations.dart';
-import 'package:dart_core_orm/src/orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 extension TypeExtension on Type {
+
+
+  bool get isList {
+    /// not the most reliable way to check if a type is a list
+    /// but for the sake of this ORM it's enough. 
+    return toString().contains('List');
+  }
+
   ChainedQuery _toChainedQuery() {
     final query = this is ChainedQuery ? this as ChainedQuery : ChainedQuery()
       ..type = this;
@@ -179,10 +185,10 @@ extension TypeExtension on Type {
       query.add(json.entries.map(
         (entry) {
           var value = entry.value;
-          if (value is String) {
-            value = "'${value.sanitize()}'";
-          }
-          return '${entry.key} = $value';
+          // if (value is String) {
+          //   value = "'${value.sanitize()}'";
+          // }
+          return '${entry.key} = ${(value as Object).tryConvertValueToDatabaseCompatible()}';
         },
       ).join(', '));
     }
@@ -394,9 +400,9 @@ class ChainedQuery {
     return true;
   }
 
-  bool get _isDeleteQuery {
-    return queryType == 'DELETE';
-  }
+  // bool get _isDeleteQuery {
+  //   return queryType == 'DELETE';
+  // }
 
   ChainedQuery where(List<WhereOperation> operations) {
     if (operations.isEmpty) {
@@ -444,7 +450,7 @@ class ChainedQuery {
     return [];
   }
 
-  Future<Object?> execute({
+  Future<Object?> execute<T>({
     Duration? timeout,
     bool dryRun = false,
     bool returnResult = false,
