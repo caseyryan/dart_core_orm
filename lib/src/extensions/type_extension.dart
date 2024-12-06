@@ -128,6 +128,7 @@ extension TypeExtension on Type {
       query.add('(');
 
       final fieldDescriptions = classMirror.getFieldsDescription(query.type!);
+
       query.add(fieldDescriptions.join(', '));
       query.add(')');
       if (createTriggerCode != null) {
@@ -314,8 +315,9 @@ extension TypeExtension on Type {
       },
     ).toList();
     final ending = plural ? 's' : '';
-    return (classAnnotations.lastOrNull?.reflectee as TableName?)?.name ??
+    final name = (classAnnotations.lastOrNull?.reflectee as TableName?)?.name ??
         '${typeMirror.simpleName.toName().camelToSnake()}$ending';
+    return name.wrapInDoubleQuotesIfNeeded();
   }
 }
 
@@ -558,6 +560,6 @@ class FieldDescription {
 
   @override
   String toString() {
-    return '$fieldName ${dataTypes.join(' ')}';
+    return '${fieldName.wrapInDoubleQuotesIfNeeded()} ${dataTypes.join(' ')}';
   }
 }

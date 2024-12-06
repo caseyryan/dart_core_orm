@@ -20,24 +20,40 @@ Future main() async {
     // дописать оборачивание в двойные кавычки для postgres
     useCaseSensitiveNames: true,
   );
+  // await (User).createTable(
+  //   dryRun: false,
+
+  //   /// In this case it will create a trigger that will
+  //   /// set updatedAt field to the current timestamp
+  //   /// when a row is inserted or updated
+  //   createTriggerCode: createUpdatedAtTriggerCode(
+  //     tableName: (User).toTableName(),
+  //     columnName: 'updatedAt',
+  //   ),
+  // );
+
+  // return;
 
   final user = User()
-    ..firstName = 'John Doed'
-    ..email = 'john@doe.com';
+    ..firstName = 'Sifon Boroda'
+    ..email = 'sifa@dormoed.com';
   // final foundUser = await user.find().execute(returnResult: true);
   // print(foundUser);
 
   // return;
   final result = await user.insert().execute(
+  // final result = await user.upsert().execute(
         dryRun: false,
         returnResult: true,
       );
+  return;
   if (result is OrmError) {
     if (result.type == OrmErrorType.tableNotExists) {
       await (User).createTable(
         dryRun: false,
-        /// In this case it will create a trigger that will 
-        /// set updatedAt field to the current timestamp 
+
+        /// In this case it will create a trigger that will
+        /// set updatedAt field to the current timestamp
         /// when a row is inserted or updated
         createTriggerCode: createUpdatedAtTriggerCode(
           tableName: (User).toTableName(),
@@ -45,18 +61,15 @@ Future main() async {
         ),
       );
       final result = await user.upsert().execute(
-        dryRun: false,
-        returnResult: true,
-      );
+            dryRun: false,
+            returnResult: true,
+          );
       print(result);
     }
   }
 
-
   // await (User).createTable(dryRun: true);
 }
-
-
 
 Future createTableWithDefaultId() async {
   await (Reader).createTable(

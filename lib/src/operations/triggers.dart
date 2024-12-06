@@ -8,6 +8,8 @@ String? createUpdatedAtTriggerCode({
   required String tableName,
   String? columnName = 'updated_at',
 }) {
+  columnName = columnName?.wrapInDoubleQuotesIfNeeded();
+
   if (orm.family == DatabaseFamily.postgres) {
     final triggerCode = '''
 CREATE OR REPLACE FUNCTION update_date_column()

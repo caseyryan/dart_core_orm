@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:mirrors';
 
 import 'package:dart_core_orm/dart_core_orm.dart';
@@ -145,7 +146,8 @@ extension ObjectExtensions on Object {
       final uniqueKeys = keys
           .where((e) => uniqueColumns.any((c) => c.fieldName == e))
           .toList();
-      final uKeys = uniqueKeys.join(', ');
+      final uKeys = uniqueKeys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ');
+
       if (foreignKeyObjects.isNotEmpty) {
         keys.addAll(foreignKeyObjects.map((e) => e.fieldName));
         if (withUpsert) {
@@ -158,17 +160,18 @@ extension ObjectExtensions on Object {
         }
       }
       String valuesOnly = '(${values.join(', ')})';
-      String keysOnly = '(${keys.join(', ')})';
+      String keysOnly = '(${keys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ')})';
       if (uniqueColumns.isNotEmpty) {
         /// because update only makes sense when there is a unique constraint
         if (uniqueKeys.isNotEmpty) {
           stringBuffer.write('ON CONFLICT ($uKeys) DO UPDATE SET ');
 
           for (var i = 0; i < keys.length; i++) {
+            final keyName = keys[i];
             if (uniqueKeys.contains(keys[i])) {
               continue;
             }
-            stringBuffer.write('${keys[i]} = EXCLUDED.${keys[i]}');
+            stringBuffer.write('${keyName.wrapInDoubleQuotesIfNeeded()} = EXCLUDED.${keyName.wrapInDoubleQuotesIfNeeded()}');
             if (i != uniqueKeys.length - 1) {
               stringBuffer.write(', ');
             }
@@ -186,8 +189,8 @@ extension ObjectExtensions on Object {
   }
 
   /// Simple find using AND operations for all set fields
-  /// If you need a more complicated query 
-  /// use runtimeType.select().where([...]) where you can 
+  /// If you need a more complicated query
+  /// use runtimeType.select().where([...]) where you can
   /// pass other Where clauses
   /// or use direct database query using orm?.executeSimpleQuery
   ChainedQuery find() {
