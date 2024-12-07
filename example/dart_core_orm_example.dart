@@ -1,5 +1,4 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:dart_core_orm/src/operations/triggers.dart';
 
 import 'models.dart';
 
@@ -20,26 +19,29 @@ Future main() async {
     // дописать оборачивание в двойные кавычки для postgres
     useCaseSensitiveNames: true,
   );
-  await (User).createTable(
-    dryRun: false,
 
-    /// In this case it will create a trigger that will
-    /// set updatedAt field to the current timestamp
-    /// when a row is inserted or updated
-    createTriggerCode: createUpdatedAtTriggerCode(
-      tableName: (User).toTableName(),
-      columnName: 'updatedAt',
-    ),
-  );
+  await (User).alterTable(dryRun: false);
+
+  // await (User).createTable(
+  //   dryRun: false,
+
+  //   /// In this case it will create a trigger that will
+  //   /// set updatedAt field to the current timestamp
+  //   /// when a row is inserted or updated
+  //   createTriggerCode: createUpdatedAtTriggerCode(
+  //     tableName: (User).toTableName(),
+  //     columnName: 'updatedAt',
+  //   ),
+  // );
 
   return;
 
-  final user = User()
-    ..firstName = 'Sifon Boroda'
-    ..isDeleted = false
-    ..email = 'sifa@dormoed.com';
-  final queryResult = await user.tryFind<User>();
-  print(queryResult.value);
+  // final user = User()
+  //   ..firstName = 'Sifon Boroda'
+  //   ..isDeleted = false
+  //   ..email = 'sifa@dormoed.com';
+  // final queryResult = await user.tryFind<User>();
+  // print(queryResult.value);
 
   // final result = await user.insert().execute(
       //   final result = await user.upsert().execute(

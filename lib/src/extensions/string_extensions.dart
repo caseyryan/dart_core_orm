@@ -29,4 +29,15 @@ extension StringExtensions on String {
     }
     return this;
   }
+
+  /// sometimes it's necessary
+  String stripWrappingDoubleQuotes() {
+    var result = this;
+    if (orm.family == DatabaseFamily.postgres) {
+      if (startsWith('"') && endsWith('"') && length > 2) {
+        result = substring(1, length - 1);
+      }
+    }
+    return result;
+  }
 }

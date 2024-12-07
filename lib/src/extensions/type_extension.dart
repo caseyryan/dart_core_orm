@@ -6,12 +6,12 @@ import 'package:collection/collection.dart';
 import 'package:dart_core_orm/dart_core_orm.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
+part '_support_types.dart';
+
 extension TypeExtension on Type {
-
-
   bool get isList {
     /// not the most reliable way to check if a type is a list
-    /// but for the sake of this ORM it's enough. 
+    /// but for the sake of this ORM it's enough.
     return toString().contains('List');
   }
 
@@ -47,7 +47,8 @@ extension TypeExtension on Type {
         if (limitAnnotation != null) {
           return limitAnnotation.getValueForType(this, fieldName);
         }
-        final uniqueConstraint = columnAnnotations.whereType<UniqueColumn>().firstOrNull;
+        final uniqueConstraint =
+            columnAnnotations.whereType<UniqueColumn>().firstOrNull;
         if (uniqueConstraint != null) {
           /// for SERIAL type we don't need any of these
           columnAnnotations.removeWhere((e) => e is NotNullColumn);
@@ -112,11 +113,43 @@ extension TypeExtension on Type {
     return convertedKeys;
   }
 
+  /// [oldTableName] must be passed only in case
+  /// the name has also changed. If you didn't rename the class
+  /// and didn't change the column naming policy, leave it null
+  Future alterTable({
+    bool dryRun = false,
+    String? oldTableName,
+  }) async {
+    if (orm.family == DatabaseFamily.postgres) {
+      /// for some reason if a table was created with double quotes
+      /// it won't work with this request
+      final tableName =
+          (oldTableName ?? toTableName()).stripWrappingDoubleQuotes();
+
+      final simpleScheme = await orm.executeSimpleQuery(
+        query: '''
+          SELECT column_name, data_type
+          FROM information_schema.columns
+          WHERE table_name = '$tableName';
+        ''',
+      );
+      if (simpleScheme is List && simpleScheme.isNotEmpty) {
+        final scheme = _SimpleTableScheme.fromPostgresRawList(
+          newTableName: oldTableName != null ? tableName : null,
+          tableName: oldTableName ?? tableName,
+          value: simpleScheme,
+        );
+        final alterTableQuery = scheme.toAlterTableQuery(this);
+        print(alterTableQuery);
+      }
+    }
+  }
+
   /// [dryRun] is used to only show the query itself not actually
   /// executing it
   /// [createTriggerCode] allows you to create some triggers for a table
   /// if necessary. To know the table creation query use dryRun first
-  Future createTable({
+  Future<bool> createTable({
     bool dryRun = false,
     bool ifNotExists = true,
     String? createTriggerCode,
@@ -141,14 +174,17 @@ extension TypeExtension on Type {
         query.add(';');
         query.add(createTriggerCode);
       }
+      if (!dryRun) {
+        final result = await query.execute(
+          dryRun: dryRun,
+          returnResult: true,
+        );
+        return result is List && result.isEmpty;
+      } else {
+        query.printQuery();
+      }
     }
-    if (!dryRun) {
-      final result = await query.execute(dryRun: dryRun);
-      return result;
-    } else {
-      query.printQuery();
-    }
-    return null;
+    throw Exception('${orm.family} is not supported yet');
   }
 
   /// [update] is an instance of your model with the changed
@@ -238,7 +274,8 @@ extension TypeExtension on Type {
 
           /// closes WITH upsert AS (
           tempQueries.add(')');
-          tempQueries.add('INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}');
+          tempQueries.add(
+              'INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}');
           updateQuery = insertQueries.updateQuery;
           if (updateQuery?.isNotEmpty == true) {
             tempQueries.add(updateQuery!);
@@ -368,7 +405,7 @@ class ChainedQuery {
     return '';
   }
 
-  /// With some type of conflic resolutions 
+  /// With some type of conflic resolutions
   /// RETURNING might already be added to the query
   /// previously so adding it one more time will result in an error
   bool get _canReturnResult {
@@ -485,7 +522,7 @@ class ChainedQuery {
 
 FieldDescription getFieldDescription({
   required String fieldName,
-  required Type fieldType,
+  required Type fieldDartType,
   required List<InstanceMirror> metadata,
 }) {
   List<TableColumnAnnotation> columnAnnotations = [];
@@ -513,7 +550,7 @@ FieldDescription getFieldDescription({
       ],
     );
   }
-  final databaseType = fieldType.toDatabaseType(
+  final databaseType = fieldDartType.toDatabaseType(
     columnAnnotations,
     fieldName,
   );
@@ -522,17 +559,19 @@ FieldDescription getFieldDescription({
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
 
-  bool hasUniqueConstraints = otherColumnAnnotations.any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
+  bool hasUniqueConstraints = otherColumnAnnotations
+      .any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
 
   final fieldDescription = FieldDescription(
     fieldName: fieldName,
+    dartType: fieldDartType,
     hasUniqueConstraints: hasUniqueConstraints,
     dataTypes: [
       databaseType,
       ...otherColumnAnnotations.mapIndexed(
         (int index, TableColumnAnnotation e) {
           var value = e.getValueForType(
-            fieldType,
+            fieldDartType,
             fieldName,
           );
           if (e is ForeignKeyColumn) {
@@ -543,7 +582,11 @@ FieldDescription getFieldDescription({
           return value;
         },
       )
-    ],
+    ]
+        .where(
+          (element) => element.isNotEmpty,
+        )
+        .toList(),
   );
   return fieldDescription;
 }
@@ -558,8 +601,10 @@ class FieldDescription {
   final List<String> dataTypes;
   final String fieldName;
   final bool hasUniqueConstraints;
+  final Type dartType;
   FieldDescription({
     required this.dataTypes,
+    required this.dartType,
     required this.fieldName,
     required this.hasUniqueConstraints,
   });

@@ -39,11 +39,11 @@ extension ClassMirrorExtensions on ClassMirror {
       if (field.value is VariableMirror) {
         var name = field.key.toName();
         name = convertedKeys[name] ?? name;
-        final fieldType = (field.value as VariableMirror).type.reflectedType;
+        final fieldDartType = (field.value as VariableMirror).type.reflectedType;
         fieldDescriptions.add(
           getFieldDescription(
             fieldName: name,
-            fieldType: fieldType,
+            fieldDartType: fieldDartType,
             metadata: field.value.metadata,
           ),
         );

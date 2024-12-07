@@ -1,9 +1,30 @@
 # Object Relational Mapping SDK for [Dart Net Core API](https://github.com/caseyryan/dart_net_core_api)
 
 
-
 **IMPORTANT**: This library is in development and is not ready for any use
 At the moment I'm only making a simple PostgreSQL support 
+
+❌ - Planned but not implemented yet
+⏳ - in progress
+✅ - Done
+
+___
+
+## PostgreSQL support 
+❌ more complex foreign key structure support
+❌ alter table with foreign key support
+⏳ alter table for simple tables without foreign keys
+✅ create table
+✅ case sensitive names
+✅ insert / upsert (including simple support for foregin keys, on a single level)
+✅ delete records
+✅ select records (including top level find method)
+
+___
+
+❌ MySQL support
+❌ SQLite support
+❌ MongoDB support
 
 
 This library is based on reflections and will **not** work with AOT compilation, **only** JIT is supported. 

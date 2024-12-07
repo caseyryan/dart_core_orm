@@ -146,6 +146,9 @@ class Orm {
           case '42P01':
             type = OrmErrorType.tableNotExists;
             break;
+          case '42710':
+            type = OrmErrorType.tableAlreadyExists;
+            break;
           case '23505':
             type = OrmErrorType.uniqueConstraintViolation;
             break;
@@ -185,6 +188,10 @@ class OrmError {
 
   bool get isRecordAlreadyExists {
     return type == OrmErrorType.uniqueConstraintViolation;
+  }
+  
+  bool get isTableAlreadyExists {
+    return type == OrmErrorType.tableAlreadyExists;
   }
 
   bool get isTableNotExists {

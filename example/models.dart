@@ -30,9 +30,9 @@ class Book {
   String? title;
 
   /// This foreign key will actually transform the field in the database
-  /// in this case [author] will be transformed into [author_id] 
+  /// in this case [author] will be transformed into [author_id]
   /// (by using (Author).toTableName(plural: false) + '_${fieldName}')
-  /// IMPORTANT: any foreign keys inside a model automatically transform 
+  /// IMPORTANT: any foreign keys inside a model automatically transform
   /// a simple query to a transaction (where it's possible, not any database supports it)
   /// to make sure everything is inserted correctly
   /// before inserting the main model
@@ -55,7 +55,6 @@ class Author {
   String? lastName;
 }
 
-
 class Reader {
   @DefaultId()
   int? id;
@@ -64,14 +63,17 @@ class Reader {
   String? fullName;
 }
 
-
-
 @JsonIncludeParentFields()
 class User extends BaseModel {
-  String? firstName;
+  String? name;
 
   @UniqueColumn()
   String? email;
+
+  @DateColumn(
+    dateType: DateType.date,
+  )
+  DateTime? birthDate;
 }
 
 class BaseModel {
