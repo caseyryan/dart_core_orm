@@ -71,6 +71,11 @@ extension TypeExtension on Type {
       }
     } else if (this == DateTime) {
       if (orm.family == DatabaseFamily.postgres) {
+        final dateColumnAnnotation =
+            columnAnnotations.whereType<DateColumn>().firstOrNull;
+        if (dateColumnAnnotation != null) {
+          return '';
+        }
         return 'TIMESTAMP WITH TIME ZONE';
       }
     } else if (isList) {
