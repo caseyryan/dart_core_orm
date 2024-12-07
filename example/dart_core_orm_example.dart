@@ -24,7 +24,7 @@ Future main() async {
   // await (User).alterTable(dryRun: false);
 
   await (User).createTable(
-    dryRun: false,
+    dryRun: true,
 
     /// In this case it will create a trigger that will
     /// set updatedAt field to the current timestamp

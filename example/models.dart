@@ -77,12 +77,13 @@ enum Role {
 
 @JsonIncludeParentFields()
 class User extends BaseModel {
-  
   List<Role>? roles;
   @NameValidator(canBeNull: true)
+  @LimitColumn(limit: 60)
   String? firstName;
 
   @NameValidator(canBeNull: true)
+  @LimitColumn(limit: 60)
   String? lastName;
 
   String getFullName() {
@@ -93,21 +94,25 @@ class User extends BaseModel {
     canBeNull: true,
   )
   @UniqueColumn()
+  @LimitColumn(limit: 60)
   String? email;
 
   @PhoneValidator(
     canBeNull: true,
   )
   @UniqueColumn()
+  @LimitColumn(limit: 20)
   String? phone;
 
   // @JsonIgnore(ignoreDirections: [
   //   SerializationDirection.toJson,
   // ])
+  @LimitColumn(limit: 46)
   String? passwordHash;
 
   @JsonTrimString()
   @NameValidator(canBeNull: true)
+  @LimitColumn(limit: 60)
   String? middleName;
 
   @JsonTrimString()
@@ -116,6 +121,10 @@ class User extends BaseModel {
 
   @JsonDateConverter(
     dateFormat: 'yyyy-MM-dd',
+  )
+  @DateColumn(
+    dateType: DateType.date,
+    defaultValue: DateTimeDefaultValue.empty,
   )
   DateTime? birthDate;
 

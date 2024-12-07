@@ -65,33 +65,39 @@ extension TypeExtension on Type {
       if (orm.family == DatabaseFamily.postgres) {
         return 'BOOLEAN';
       }
+    } else if (this == double || this == num) {
+      if (orm.family == DatabaseFamily.postgres) {
+        return 'DECIMAL';
+      }
+    } else if (this == DateTime) {
+      if (orm.family == DatabaseFamily.postgres) {
+        return 'TIMESTAMP WITH TIME ZONE';
+      }
     } else if (isList) {
-      final reflection = reflectType(this);
-
-      final reflectionClassMirror = (reflection as ClassMirror);
-      if (reflectionClassMirror.isGeneric) {
-        final genericType =
-            reflectionClassMirror.typeArguments.first.reflectedType;
-        if (genericType == String) {
-          return 'TEXT[]';
-        } else if (genericType == int) {
-          return 'INTEGER[]';
-        } else if (genericType == bool) {
-          return 'BOOLEAN[]';
-        } else if (genericType == DateTime) {
-          return 'TIMESTAMP WITH TIME ZONE[]';
-        } else if (genericType == double || genericType == num) {
-          return 'DECIMAL[]';
-        } else {
-          final reflectedClass = reflectClass(genericType);
-          if (reflectedClass.isEnum) {
+      if (orm.family == DatabaseFamily.postgres) {
+        final reflection = reflectType(this);
+        final reflectionClassMirror = (reflection as ClassMirror);
+        if (reflectionClassMirror.isGeneric) {
+          final genericType =
+              reflectionClassMirror.typeArguments.first.reflectedType;
+          if (genericType == String) {
             return 'TEXT[]';
+          } else if (genericType == int) {
+            return 'INTEGER[]';
+          } else if (genericType == bool) {
+            return 'BOOLEAN[]';
+          } else if (genericType == DateTime) {
+            return 'TIMESTAMP WITH TIME ZONE[]';
+          } else if (genericType == double || genericType == num) {
+            return 'DECIMAL[]';
+          } else {
+            final reflectedClass = reflectClass(genericType);
+            if (reflectedClass.isEnum) {
+              return 'TEXT[]';
+            }
           }
         }
-        print(genericType);
       }
-      final fromJson = this.fromJson({});
-      print(fromJson);
     }
     return '';
   }
