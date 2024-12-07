@@ -77,20 +77,57 @@ enum Role {
 
 @JsonIncludeParentFields()
 class User extends BaseModel {
-  String? name;
-
+  
   List<Role>? roles;
+  @NameValidator(canBeNull: true)
+  String? firstName;
 
-  @UniqueColumn()
+  @NameValidator(canBeNull: true)
+  String? lastName;
+
+  String getFullName() {
+    return '$firstName $lastName';
+  }
+
   @EmailValidator(
     canBeNull: true,
   )
+  @UniqueColumn()
   String? email;
 
-  @DateColumn(
-    dateType: DateType.date,
+  @PhoneValidator(
+    canBeNull: true,
+  )
+  @UniqueColumn()
+  String? phone;
+
+  // @JsonIgnore(ignoreDirections: [
+  //   SerializationDirection.toJson,
+  // ])
+  String? passwordHash;
+
+  @JsonTrimString()
+  @NameValidator(canBeNull: true)
+  String? middleName;
+
+  @JsonTrimString()
+  @NameValidator(canBeNull: true)
+  String? nickName;
+
+  @JsonDateConverter(
+    dateFormat: 'yyyy-MM-dd',
   )
   DateTime? birthDate;
+
+  @override
+  bool operator ==(covariant User other) {
+    return other.id == id;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode;
+  }
 }
 
 class BaseModel {
