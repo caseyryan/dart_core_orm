@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'dart:math';
 import 'dart:mirrors';
 
 import 'package:collection/collection.dart';
@@ -38,8 +39,7 @@ extension TypeExtension on Type {
 
         return 'TEXT';
       }
-    }
-    if (this == int) {
+    } else if (this == int) {
       if (orm.family == DatabaseFamily.postgres) {
         final limitAnnotation = columnAnnotations.lastWhereOrNull(
           (e) => e is LimitColumn,
@@ -61,11 +61,37 @@ extension TypeExtension on Type {
         }
         return 'INTEGER';
       }
-    }
-    if (this == bool) {
+    } else if (this == bool) {
       if (orm.family == DatabaseFamily.postgres) {
         return 'BOOLEAN';
       }
+    } else if (isList) {
+      final reflection = reflectType(this);
+
+      final reflectionClassMirror = (reflection as ClassMirror);
+      if (reflectionClassMirror.isGeneric) {
+        final genericType =
+            reflectionClassMirror.typeArguments.first.reflectedType;
+        if (genericType == String) {
+          return 'TEXT[]';
+        } else if (genericType == int) {
+          return 'INTEGER[]';
+        } else if (genericType == bool) {
+          return 'BOOLEAN[]';
+        } else if (genericType == DateTime) {
+          return 'TIMESTAMP WITH TIME ZONE[]';
+        } else if (genericType == double || genericType == num) {
+          return 'DECIMAL[]';
+        } else {
+          final reflectedClass = reflectClass(genericType);
+          if (reflectedClass.isEnum) {
+            return 'TEXT[]';
+          }
+        }
+        print(genericType);
+      }
+      final fromJson = this.fromJson({});
+      print(fromJson);
     }
     return '';
   }
@@ -183,6 +209,7 @@ extension TypeExtension on Type {
       } else {
         query.printQuery();
       }
+      return false;
     }
     throw Exception('${orm.family} is not supported yet');
   }

@@ -1,3 +1,5 @@
+## 0.0.5
+- Add support for simple list types (the can include enums, ints, bools and doubles)
 ## 0.0.4
 - Added support for double quotes in Where operations to make them compatible with PostgreSQL case sensitive names
 - added `tryConvertValueToDatabaseCompatible` method to `Object` extension 

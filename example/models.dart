@@ -63,11 +63,28 @@ class Reader {
   String? fullName;
 }
 
+enum Role {
+  guest(0),
+  user(1),
+  editor(3),
+  moderator(100),
+  admin(200),
+  owner(300);
+
+  const Role(this.priority);
+  final int priority;
+}
+
 @JsonIncludeParentFields()
 class User extends BaseModel {
   String? name;
 
+  List<Role>? roles;
+
   @UniqueColumn()
+  @EmailValidator(
+    canBeNull: true,
+  )
   String? email;
 
   @DateColumn(

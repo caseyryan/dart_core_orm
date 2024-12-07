@@ -1,4 +1,5 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
+import 'package:dart_core_orm/src/operations/triggers.dart';
 
 import 'models.dart';
 
@@ -20,19 +21,19 @@ Future main() async {
     useCaseSensitiveNames: true,
   );
 
-  await (User).alterTable(dryRun: false);
+  // await (User).alterTable(dryRun: false);
 
-  // await (User).createTable(
-  //   dryRun: false,
+  await (User).createTable(
+    dryRun: false,
 
-  //   /// In this case it will create a trigger that will
-  //   /// set updatedAt field to the current timestamp
-  //   /// when a row is inserted or updated
-  //   createTriggerCode: createUpdatedAtTriggerCode(
-  //     tableName: (User).toTableName(),
-  //     columnName: 'updatedAt',
-  //   ),
-  // );
+    /// In this case it will create a trigger that will
+    /// set updatedAt field to the current timestamp
+    /// when a row is inserted or updated
+    createTriggerCode: createUpdatedAtTriggerCode(
+      tableName: (User).toTableName(),
+      columnName: 'updatedAt',
+    ),
+  );
 
   return;
 
