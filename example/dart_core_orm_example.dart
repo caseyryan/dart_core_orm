@@ -1,5 +1,4 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:dart_core_orm/src/operations/triggers.dart';
 
 import 'models.dart';
 
@@ -35,14 +34,19 @@ Future main() async {
     ),
   );
 
-  return;
+  // return;
 
-  // final user = User()
-  //   ..firstName = 'Sifon Boroda'
-  //   ..isDeleted = false
-  //   ..email = 'sifa@dormoed.com';
+  final user = User()
+    ..firstName = 'Sifon Boroda'
+    ..isDeleted = false
+    ..roles = [Role.editor]
+    ..email = 'sifa@dormoed.com';
+  final queryResult = await user.tryUpsertOne<User>(
+    dryRun: false,
+  );
+
   // final queryResult = await user.tryFind<User>();
-  // print(queryResult.value);
+  print(queryResult.value);
 
   // final result = await user.insert().execute(
       //   final result = await user.upsert().execute(

@@ -38,6 +38,8 @@ extension ObjectExtensions on Object {
         return "'$str'";
       } else if (this is bool) {
         return this == true ? 'TRUE' : 'FALSE';
+      } else if (this is List) {
+        print(this);
       }
     }
     throw 'Other types are not supported yet';
@@ -145,7 +147,17 @@ extension ObjectExtensions on Object {
             values.add(
                 (kv.value as Object).tryConvertValueToDatabaseCompatible());
           }
-        } else if (kv.value != null) {
+        } 
+        else if (kv.value is List) {
+          keys.add(kv.key);
+          values.add('ARRAY[${(kv.value as List).map((e) {
+            if (e is String) {
+              return "'$e'";
+            }
+            return e;
+          }).join(', ')}]');
+        }
+        else if (kv.value != null) {
           print(kv.value);
         }
       }
@@ -205,6 +217,31 @@ extension ObjectExtensions on Object {
       );
     }
     return null;
+  }
+
+  /// try update or insert one record
+  Future<QueryResult<T>> tryUpsertOne<T>({
+    bool dryRun = false,
+  }) async {
+    final result = await upsert().execute(
+      dryRun: dryRun,
+      returnResult: true,
+    );
+    if (result is List && result.length == 1 && result.first is T) {
+      return QueryResult(
+        value: result.first as T,
+        error: null,
+      );
+    } else if (result is OrmError) {
+      return QueryResult(
+        value: null,
+        error: result,
+      );
+    }
+    return QueryResult(
+      value: null,
+      error: null,
+    );
   }
 
   /// A simple wrapper for SELECT using AND operations for all set fields
