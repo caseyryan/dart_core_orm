@@ -285,7 +285,6 @@ extension TypeExtension on Type {
     List<T> inserts, {
     ConflictResolution conflictResolution = ConflictResolution.error,
   }) {
-    // TODO: IMPLEMENT FOR AS MANY CONFLICTING KEYS AS POSSIBLE
     final query = _toChainedQuery();
     final tableName = toTableName();
     final values = StringBuffer();
@@ -300,12 +299,11 @@ extension TypeExtension on Type {
         hasForeignKeys = foreignKeyObjects.isNotEmpty;
         if (hasForeignKeys) {
           /// Create a transaction for foreign keys
-          // TODO: create queries with foreign keys
           final tempQueries = <String>['BEGIN;'];
           tempQueries.add('WITH upsert AS ( ');
           for (var fko in foreignKeyObjects) {
             final fkoQuery = fko.object.insert(
-              conflictResolution: ConflictResolution.update,
+              conflictResolution: ConflictResolution.ignore,
               withUpsert: true,
             );
             tempQueries.add(
@@ -327,24 +325,24 @@ extension TypeExtension on Type {
           tempQueries.add(
             'INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}',
           );
-          //   updateQuery = insertQueries.onConflicsQueries;
-          //   if (updateQuery?.isNotEmpty == true) {
-          //     tempQueries.add(updateQuery!);
-          //   }
-          //   tempQueries.add(';');
-          //   tempQueries.add('COMMIT');
-          //   query._parts.clear();
-          //   query._parts.addAll(tempQueries);
-          // } else {
-          //   final insertQueries = item.toInsertQueries(
-          //     item,
-          //   );
-          //   if (i == 0) {
-          //     updateQuery = insertQueries!.onConflicsQueries;
-          //     values.write(insertQueries.keys);
-          //     values.write(' VALUES ');
-          //   }
+          updateQuery = insertQueries.onConflicsQueries.first;
+          if (updateQuery.isNotEmpty == true) {
+            tempQueries.add(updateQuery);
+          }
+          tempQueries.add(';');
+          tempQueries.add('COMMIT');
+          query._parts.clear();
+          query._parts.addAll(tempQueries);
+        } else {
+          final insertQueries = item.toInsertQueries(
+            item,
+          );
           if (insertQueries != null) {
+            if (i == 0) {
+            //   updateQuery = insertQueries.onConflicsQueries.first;
+              values.write(insertQueries.keys);
+              values.write(' VALUES ');
+            }
             values.write(insertQueries.values);
             if (!isLast) {
               values.write(', ');

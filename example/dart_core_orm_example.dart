@@ -39,21 +39,21 @@ Future main() async {
 
   // return;
 
-  final user = User()
-    ..firstName = 'Sifon'
-    ..phone = '+79909090909'
-    ..isDeleted = false
-    ..birthDate = DateTime.now()
-    ..lastName = 'Pupkin'
-    ..roles = [Role.editor, Role.user]
-    ..email = 'sifa@dormoed.com';
-  final queryResult = await user.tryInsertOne<User>(
-    dryRun: false,
-    conflictResolution: ConflictResolution.update,
-  );
+  // final user = User()
+  //   ..firstName = 'Sifon'
+  //   ..phone = '+79909090909'
+  //   ..isDeleted = false
+  //   ..birthDate = DateTime.now()
+  //   ..lastName = 'Pupkin'
+  //   ..roles = [Role.editor, Role.user]
+  //   ..email = 'sifa@dormoed.com';
+  // final queryResult = await user.tryInsertOne<User>(
+  //   dryRun: false,
+  //   conflictResolution: ConflictResolution.update,
+  // );
 
   // final queryResult = await user.tryFind<User>();
-  print(queryResult.value);
+  // print(queryResult.value);
 
   // final result = await user.insert().execute(
   //   final result = await user.upsert().execute(
@@ -83,6 +83,36 @@ Future main() async {
   // }
 
   // await (User).createTable(dryRun: true);
+  insertManyUsers();
+}
+
+Future insertManyUsers() async {
+  final users = [
+    User()
+      ..firstName = 'Dosy'
+      ..isDeleted = false
+      ..birthDate = DateTime.now()
+      ..lastName = 'Lale'
+      ..roles = [
+        Role.editor,
+        Role.user,
+      ],
+    User()
+      ..firstName = 'Peezy'
+      ..isDeleted = false
+      ..birthDate = DateTime.now()
+      ..lastName = 'Dale'
+      ..roles = [
+        Role.user,
+      ],
+  ];
+  final result = await (User).insertMany(users).execute(
+        dryRun: false,
+        returnResult: true,
+      );
+  print(result);
+
+
 }
 
 Future createTableWithDefaultId() async {
