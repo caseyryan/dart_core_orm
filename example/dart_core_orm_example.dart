@@ -1,4 +1,5 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
+import 'package:reflect_buddy/reflect_buddy.dart';
 
 import 'models.dart';
 
@@ -17,27 +18,30 @@ Future main() async {
     printQueries: true,
     port: 5455,
     // дописать оборачивание в двойные кавычки для postgres
-    useCaseSensitiveNames: true,
+    useCaseSensitiveNames: false,
   );
+  alwaysIncludeParentFields = true;
+  customGlobalKeyNameConverter = CamelToSnake();
 
   // await (User).alterTable(dryRun: false);
 
-  await (User).createTable(
-    dryRun: false,
+  // await (User).createTable(
+  //   dryRun: true,
 
-    /// In this case it will create a trigger that will
-    /// set updatedAt field to the current timestamp
-    /// when a row is inserted or updated
-    createTriggerCode: createUpdatedAtTriggerCode(
-      tableName: (User).toTableName(),
-      columnName: 'updatedAt',
-    ),
-  );
+  //   /// In this case it will create a trigger that will
+  //   /// set updatedAt field to the current timestamp
+  //   /// when a row is inserted or updated
+  //   createTriggerCode: createUpdatedAtTriggerCode(
+  //     tableName: (User).toTableName(),
+  //     columnName: 'updated_at',
+  //   ),
+  // );
 
   // return;
 
   final user = User()
     ..firstName = 'Sifon Boroda'
+    ..phone = '+79909090909'
     ..isDeleted = false
     ..roles = [Role.editor]
     ..email = 'sifa@dormoed.com';
@@ -49,10 +53,10 @@ Future main() async {
   print(queryResult.value);
 
   // final result = await user.insert().execute(
-      //   final result = await user.upsert().execute(
-      //   dryRun: false,
-      //   returnResult: true,
-      // );
+  //   final result = await user.upsert().execute(
+  //   dryRun: false,
+  //   returnResult: true,
+  // );
   // print(result);
   // if (queryResult.isError) {
   //   if (queryResult.error!.isTableNotExists) {
@@ -67,12 +71,12 @@ Future main() async {
   //         columnName: 'updatedAt',
   //       ),
   //     );
-      // final result = await user.upsert().execute(
-      //       dryRun: false,
-      //       returnResult: true,
-      //     );
-      // print(result);
-    // }
+  // final result = await user.upsert().execute(
+  //       dryRun: false,
+  //       returnResult: true,
+  //     );
+  // print(result);
+  // }
   // }
 
   // await (User).createTable(dryRun: true);

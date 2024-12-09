@@ -1,4 +1,5 @@
 import 'package:dart_core_orm/src/annotations/table_column_annotations.dart';
+import 'package:dart_core_orm/src/converters/json_value_converters.dart';
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 /// The annotation comes from the [reflect_buddy] package
@@ -77,7 +78,13 @@ enum Role {
 
 @JsonIncludeParentFields()
 class User extends BaseModel {
+
+  /// enum converter is important here, because 
+  /// PostgreSQL Dart driver doesn't understand ARRAY[]
+  /// and returns it as UndecodedBytes
+  @EnumConverter()
   List<Role>? roles;
+  
   @NameValidator(canBeNull: true)
   @LimitColumn(limit: 60)
   String? firstName;

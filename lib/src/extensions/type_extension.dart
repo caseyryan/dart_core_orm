@@ -1,10 +1,11 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'dart:math';
+import 'dart:convert';
 import 'dart:mirrors';
 
 import 'package:collection/collection.dart';
 import 'package:dart_core_orm/dart_core_orm.dart';
+import 'package:postgres/postgres.dart' as pgsl;
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 part '_support_types.dart';
@@ -203,12 +204,27 @@ extension TypeExtension on Type {
       query.add(tableName);
       query.add('(');
 
-      final fieldDescriptions = classMirror.getFieldsDescription(query.type!);
+      final List<FieldDescription> fieldDescriptions =
+          classMirror.getFieldsDescription(
+        query.type!,
+      );
+
+      /// just a small hack to put id field at the beginning
+      final idIndex = fieldDescriptions.indexWhere((e) => e.fieldName == 'id');
+      if (idIndex != -1) {
+        fieldDescriptions.insert(0, fieldDescriptions.removeAt(idIndex));
+      }
 
       query.add(fieldDescriptions.join(', '));
-      query.add(')');
-      if (createTriggerCode != null) {
-        query.add(';');
+
+      // int numUniqueColumns = fieldDescriptions
+      //     .where(
+      //       (e) => e.hasUniqueConstraints,
+      //     )
+      //     .length;
+      bool createTrigger = createTriggerCode != null;
+      query.add(')${createTrigger ? ';\n' : ''}');
+      if (createTrigger) {
         query.add(createTriggerCode);
       }
       if (!dryRun) {
@@ -258,11 +274,7 @@ extension TypeExtension on Type {
       query.add('SET');
       query.add(json.entries.map(
         (entry) {
-          var value = entry.value;
-          // if (value is String) {
-          //   value = "'${value.sanitize()}'";
-          // }
-          return '${entry.key} = ${(value as Object).tryConvertValueToDatabaseCompatible()}';
+          return '${entry.key} = ${(entry.value as Object).tryConvertValueToDatabaseCompatible()}';
         },
       ).join(', '));
     }
@@ -273,7 +285,7 @@ extension TypeExtension on Type {
     List<T> inserts, {
     ConflictResolution conflictResolution = ConflictResolution.error,
   }) {
-    // TODO: implement conflict resolution
+    // TODO: IMPLEMENT FOR AS MANY CONFLICTING KEYS AS POSSIBLE
     final query = _toChainedQuery();
     final tableName = toTableName();
     final values = StringBuffer();
@@ -313,24 +325,25 @@ extension TypeExtension on Type {
           /// closes WITH upsert AS (
           tempQueries.add(')');
           tempQueries.add(
-              'INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}');
-          updateQuery = insertQueries.updateQuery;
-          if (updateQuery?.isNotEmpty == true) {
-            tempQueries.add(updateQuery!);
-          }
-          tempQueries.add(';');
-          tempQueries.add('COMMIT');
-          query._parts.clear();
-          query._parts.addAll(tempQueries);
-        } else {
-          final insertQueries = item.toInsertQueries(
-            item,
+            'INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}',
           );
-          if (i == 0) {
-            updateQuery = insertQueries!.updateQuery;
-            values.write(insertQueries.keys);
-            values.write(' VALUES ');
-          }
+          //   updateQuery = insertQueries.onConflicsQueries;
+          //   if (updateQuery?.isNotEmpty == true) {
+          //     tempQueries.add(updateQuery!);
+          //   }
+          //   tempQueries.add(';');
+          //   tempQueries.add('COMMIT');
+          //   query._parts.clear();
+          //   query._parts.addAll(tempQueries);
+          // } else {
+          //   final insertQueries = item.toInsertQueries(
+          //     item,
+          //   );
+          //   if (i == 0) {
+          //     updateQuery = insertQueries!.onConflicsQueries;
+          //     values.write(insertQueries.keys);
+          //     values.write(' VALUES ');
+          //   }
           if (insertQueries != null) {
             values.write(insertQueries.values);
             if (!isLast) {
@@ -411,6 +424,8 @@ enum ConflictResolution {
 class ChainedQuery {
   Type? type;
 
+  static const String delimiter = '|||';
+
   final List<String> _parts = [];
 
   void add(String part) {
@@ -446,7 +461,7 @@ class ChainedQuery {
   /// With some type of conflic resolutions
   /// RETURNING might already be added to the query
   /// previously so adding it one more time will result in an error
-  bool get _canReturnResult {
+  bool get _canAddReturningStatementAtTheEnd {
     if (toQueryString().contains('RETURNING')) {
       return false;
     }
@@ -506,7 +521,7 @@ class ChainedQuery {
   }
 
   void printQuery() {
-    print('PREPARED QUERY: ${toQueryString()}');
+    print('PREPARED QUERY:\n\n${toQueryString()}');
   }
 
   String toQueryString({
@@ -531,30 +546,60 @@ class ChainedQuery {
     bool returnResult = false,
   }) async {
     if (returnResult) {
-      if (_canReturnResult) {
+      if (_canAddReturningStatementAtTheEnd) {
         add('RETURNING *');
       }
     }
     final query = toQueryString();
-    final result = await orm.executeSimpleQuery(
-      query: query,
-      timeout: timeout,
-      dryRun: dryRun,
-    );
-    if (result is List && result.isNotEmpty) {
-      if (result.first is Map) {
-        return result.map((e) {
-          // print(e);
-          return type!.fromJson(e);
-        }).toList();
-      }
 
-      /// This might contain errors as String objects
-      return result;
-    } else if (result is OrmError) {
-      return result;
+    OrmError? error;
+    Object? successResult;
+    Object? unknownError;
+    List<String> queriesToExecute = [
+      query,
+    ];
+
+    if (query.contains(ChainedQuery.delimiter)) {
+      /// this can be the case for some queries
+      queriesToExecute = query
+          .split(ChainedQuery.delimiter)
+          .where(
+            (e) => e.isNotEmpty,
+          )
+          .map((e) => e.trim())
+          .toList();
     }
-    return [];
+    // print(queriesToExecute.join('\n'));
+    for (var i = 0; i < queriesToExecute.length; i++) {
+      final query = queriesToExecute[i];
+      final result = await orm.executeSimpleQuery(
+        query: query,
+        timeout: timeout,
+        dryRun: dryRun,
+      );
+      if (result is List && result.isNotEmpty) {
+        if (result.first is Map) {
+          // final roles = result.first['roles'] as pgsl.UndecodedBytes;
+          // var decodedRoles = utf8.decode(roles.bytes);
+          // print(decodedRoles);
+          successResult = result.map((e) {
+            return type!.fromJson(e);
+          }).toList();
+          break;
+        }
+      } else if (result is OrmError) {
+        error = result;
+      }
+    }
+    if (successResult != null) {
+      return successResult;
+    }
+    else if (error != null) {
+      return error;
+    }
+    else {
+      return unknownError;
+    }
   }
 }
 

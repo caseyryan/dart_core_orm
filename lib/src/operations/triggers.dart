@@ -12,7 +12,7 @@ String? createUpdatedAtTriggerCode({
 
   if (orm.family == DatabaseFamily.postgres) {
     final triggerCode = '''
-CREATE OR REPLACE FUNCTION update_date_column()
+\nCREATE OR REPLACE FUNCTION update_date_column()
 RETURNS TRIGGER AS
 \$\$
 BEGIN
