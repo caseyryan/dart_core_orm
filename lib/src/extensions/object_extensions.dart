@@ -198,9 +198,8 @@ extension ObjectExtensions on Object {
 
       final onConflicsQueries = <String>[];
       if (uniqueColumns.isNotEmpty) {
-        /// because update only makes sense when there is a unique constraint
         if (uniqueKeys.isNotEmpty) {
-          // тут надо для каждого уникального ключу создать свой апдейт
+          /// creates update statement for each unuque key
           for (var i = 0; i < uniqueKeys.length; i++) {
             final uniqueKeyName = uniqueKeys[i];
             final parts = <String>[
@@ -215,26 +214,6 @@ extension ObjectExtensions on Object {
             parts.add(nonUniqueStrings.join(',\n'));
             onConflicsQueries.add(parts.join(' '));
           }
-
-          // parts.add(
-          //   ' ON CONFLICT ($uKeys) DO UPDATE SET ',
-          // );
-          // for (var i = 0; i < keys.length; i++) {
-          //   final keyName = keys[i];
-          //   if (uniqueKeys.contains(keys[i])) {
-          //     continue;
-          //   }
-          //   parts.add(
-          //     '${keyName.wrapInDoubleQuotesIfNeeded()} = EXCLUDED.${keyName.wrapInDoubleQuotesIfNeeded()}',
-          //   );
-          //   if (i < keys.length - 1) {
-          //     parts.add(', ');
-          //   }
-          // }
-          // if (parts.isNotEmpty && parts.last == ', ') {
-          //   parts.removeLast();
-          // }
-          // parts.add(' RETURNING *');
         }
       }
       return InsertQueries(
@@ -250,7 +229,18 @@ extension ObjectExtensions on Object {
   Future<QueryResult<T>> tryUpsertOne<T>({
     bool dryRun = false,
   }) async {
-    final result = await upsert().execute(
+    return tryInsertOne(
+      conflictResolution: ConflictResolution.update,
+    );
+  }
+
+  Future<QueryResult<T>> tryInsertOne<T>({
+    bool dryRun = false,
+    required ConflictResolution conflictResolution,
+  }) async {
+    final result = await insert(
+      conflictResolution: conflictResolution,
+    ).execute(
       dryRun: dryRun,
       returnResult: true,
     );
@@ -352,8 +342,12 @@ extension ObjectExtensions on Object {
       for (var i = 0; i < valueKeys.onConflicsQueries.length; i++) {
         accumulatedQueries.add('INSERT INTO $tableName');
         accumulatedQueries.add(valueString);
-        final conflicUpdates = valueKeys.onConflicsQueries[i];
-        accumulatedQueries.add(conflicUpdates);
+        if (conflictResolution == ConflictResolution.ignore) {
+          accumulatedQueries.add(' ON CONFLICT DO NOTHING');
+        } else if (conflictResolution == ConflictResolution.update) {
+          final conflicUpdates = valueKeys.onConflicsQueries[i];
+          accumulatedQueries.add(conflicUpdates);
+        }
         accumulatedQueries.add('\nRETURNING *\n');
 
         if (i < valueKeys.onConflicsQueries.length - 1) {
@@ -371,14 +365,6 @@ extension ObjectExtensions on Object {
         accumulatedQueries.add('\nRETURNING *\n');
       }
       query.add(accumulatedQueries.join(' '));
-
-      // if (conflictResolution == ConflictResolution.ignore) {
-      //   query.add(' ON CONFLICT DO NOTHING');
-      // } else if (conflictResolution == ConflictResolution.update) {
-      //   if (valueKeys.onConflicsQueries.isNotEmpty) {
-      //     // query.add(valueKeys.onConflicsQueries!);
-      //   }
-      // }
     }
     return query;
   }

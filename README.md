@@ -11,9 +11,12 @@ At the moment I'm only making a simple PostgreSQL support
 ___
 
 ## PostgreSQL support 
+❌ insert many
+❌ select with limits and offsets
 ❌ more complex foreign key structure support
 ❌ alter table with foreign key support
-⏳ alter table for simple tables without foreign keys
+❌ alter table for simple tables without foreign keys
+✅ support for enums in database columns (stored as ARRAY[]) + `EnumConverter` for a field
 ✅ create table
 ✅ case sensitive names
 ✅ insert / upsert (including simple support for foregin keys, on a single level)

@@ -40,13 +40,16 @@ Future main() async {
   // return;
 
   final user = User()
-    ..firstName = 'Sifon Boroda'
+    ..firstName = 'Sifon'
     ..phone = '+79909090909'
     ..isDeleted = false
-    ..roles = [Role.editor]
+    ..birthDate = DateTime.now()
+    ..lastName = 'Pupkin'
+    ..roles = [Role.editor, Role.user]
     ..email = 'sifa@dormoed.com';
-  final queryResult = await user.tryUpsertOne<User>(
+  final queryResult = await user.tryInsertOne<User>(
     dryRun: false,
+    conflictResolution: ConflictResolution.update,
   );
 
   // final queryResult = await user.tryFind<User>();

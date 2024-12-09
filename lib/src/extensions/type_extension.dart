@@ -593,11 +593,9 @@ class ChainedQuery {
     }
     if (successResult != null) {
       return successResult;
-    }
-    else if (error != null) {
+    } else if (error != null) {
       return error;
-    }
-    else {
+    } else {
       return unknownError;
     }
   }
