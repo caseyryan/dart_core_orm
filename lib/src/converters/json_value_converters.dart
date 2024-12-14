@@ -7,8 +7,8 @@ import 'package:reflect_buddy/reflect_buddy.dart';
 /// so it returns in as UndecodedBytes. In this ORM we
 /// store enums as ARRAY[] of strings. So this converter
 /// is required to correctly process UndecodedBytes
-class EnumConverter extends JsonValueConverter {
-  const EnumConverter();
+class ORMEnumConverter extends JsonValueConverter {
+  const ORMEnumConverter();
 
   @override
   Object? convert(

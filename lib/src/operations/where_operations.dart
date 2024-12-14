@@ -3,10 +3,10 @@ library;
 
 import 'package:dart_core_orm/dart_core_orm.dart';
 
-// TODO: add OR concatination 
+// TODO: add OR concatination
 
-class Equal extends WhereOperation {
-  Equal({
+class WhereEqual extends WhereOperation {
+  WhereEqual({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -15,8 +15,9 @@ class Equal extends WhereOperation {
         );
 }
 
-class NotEqual extends WhereOperation {
-  NotEqual({
+
+class WhereNotEqual extends WhereOperation {
+  WhereNotEqual({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -25,8 +26,8 @@ class NotEqual extends WhereOperation {
         );
 }
 
-class GreaterThan extends WhereOperation {
-  GreaterThan({
+class WhereGreaterThan extends WhereOperation {
+  WhereGreaterThan({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -35,8 +36,8 @@ class GreaterThan extends WhereOperation {
         );
 }
 
-class LessThan extends WhereOperation {
-  LessThan({
+class WhereLessThan extends WhereOperation {
+  WhereLessThan({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -45,8 +46,8 @@ class LessThan extends WhereOperation {
         );
 }
 
-class GreaterThanOrEqual extends WhereOperation {
-  GreaterThanOrEqual({
+class WhereGreaterThanOrEqual extends WhereOperation {
+  WhereGreaterThanOrEqual({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -55,8 +56,8 @@ class GreaterThanOrEqual extends WhereOperation {
         );
 }
 
-class LessThanOrEqual extends WhereOperation {
-  LessThanOrEqual({
+class WhereLessThanOrEqual extends WhereOperation {
+  WhereLessThanOrEqual({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -65,8 +66,8 @@ class LessThanOrEqual extends WhereOperation {
         );
 }
 
-class InList extends WhereOperation {
-  InList({
+class WhereInList extends WhereOperation {
+  WhereInList({
     required super.key,
     required List<Object?> value,
     super.nextJoiner = Joiner.and,
@@ -76,8 +77,8 @@ class InList extends WhereOperation {
         );
 }
 
-class Between extends WhereOperation {
-  Between({
+class WhereBetween extends WhereOperation {
+  WhereBetween({
     required super.key,
     required List<Object> value,
   })  : assert(
@@ -91,8 +92,8 @@ class Between extends WhereOperation {
         );
 }
 
-class Like extends WhereOperation {
-  Like({
+class WhereLike extends WhereOperation {
+  WhereLike({
     required super.key,
     required super.value,
     super.nextJoiner = Joiner.and,
@@ -100,8 +101,6 @@ class Like extends WhereOperation {
           operation: WhereOperationType.like,
         );
 }
-
-
 
 abstract class WhereOperation {
   WhereOperation({
@@ -117,66 +116,113 @@ abstract class WhereOperation {
   /// the value to compare with
   final Object? value;
   final WhereOperationType operation;
+
   /// [nextJoiner] is used to specify how to join the operations
   /// e.g. if you want to use OR instead of AND
   /// it will have effect if you provide more than one operation
   final Joiner nextJoiner;
 
   String toOperation() {
-    Object? valueRepresentation;
+    if (orm.family == DatabaseFamily.postgres) {
+      Object? valueRepresentation;
 
-    /// Som operations like IS NULL, IS NOT NULL
-    /// don't require a value to compare with
-    if (operation.canUseValue) {
-      if (value is List) {
-        final list = value as List;
-        if (operation == WhereOperationType.between) {
-          return '$key ${operation.operation} ${list.first} AND ${list.last}';
+      /// Som operations like IS NULL, IS NOT NULL
+      /// don't require a value to compare with
+      if (operation.canUseValue) {
+        if (value is List) {
+          final list = value as List;
+          if (operation == WhereOperationType.between) {
+            return '$key ${operation.toDatabaseWhereOperation()} ${list.first} AND ${list.last}';
+          }
+          valueRepresentation = list.map((e) {
+            // if (e is String) {
+            //   return e.sanitize();
+            // }
+            return (e as Object).tryConvertValueToDatabaseCompatible();
+          }).join(',');
+          valueRepresentation = '($valueRepresentation)';
+        } else {
+          valueRepresentation =
+              (value as Object).tryConvertValueToDatabaseCompatible();
         }
-        valueRepresentation = list.map((e) {
-          // if (e is String) {
-          //   return e.sanitize();
-          // }
-          return (e as Object).tryConvertValueToDatabaseCompatible();
-        }).join(',');
-        valueRepresentation = '($valueRepresentation)';
-      } 
-      else {
-        valueRepresentation = (value as Object).tryConvertValueToDatabaseCompatible();
+      } else {
+        valueRepresentation = '';
       }
-    } else {
-      valueRepresentation = '';
+      return '$key ${operation.toDatabaseWhereOperation()} $valueRepresentation'
+          .trim();
     }
-    return '$key ${operation.operation} $valueRepresentation'.trim();
+    throw databaseFamilyNotSupportedYet();
   }
 }
 
 enum Joiner {
-  and(' AND '),
-  or(' OR ');
+  and,
+  or;
 
-  const Joiner(this.value);
-  final String value;
+  const Joiner();
+
+  String toDatabaseOperation() {
+    if (orm.family == DatabaseFamily.postgres) {
+      switch (this) {
+        case Joiner.and:
+          return 'AND';
+        case Joiner.or:
+          return 'OR';
+      }
+    }
+    return '';
+  }
 }
 
 enum WhereOperationType {
-  equal('='),
-  notEqual('!='),
-  less('<'),
-  greater('>'),
-  lessOrEqual('<='),
-  greaterOrEqual('>='),
-  inList('IN'),
-  isNull('IS NULL', false),
-  isNotNull('IS NOT NULL', false),
-  between('BETWEEN'),
-  like('LIKE');
+  equal,
+  notEqual,
+  less,
+  greater,
+  lessOrEqual,
+  greaterOrEqual,
+  inList,
+  isNull(false),
+  isNotNull(false),
+  between,
+  all,
+  like;
 
-  final String operation;
   final bool canUseValue;
 
-  const WhereOperationType(
-    this.operation, [
+  String toDatabaseWhereOperation() {
+    if (orm.family == DatabaseFamily.postgres) {
+      switch (this) {
+        case WhereOperationType.all:
+          return '*';
+        case WhereOperationType.equal:
+          return '=';
+        case WhereOperationType.notEqual:
+          return '!=';
+        case WhereOperationType.less:
+          return '<';
+        case WhereOperationType.greater:
+          return '>';
+        case WhereOperationType.lessOrEqual:
+          return '<=';
+        case WhereOperationType.greaterOrEqual:
+          return '>=';
+        case WhereOperationType.like:
+          return 'LIKE';
+        case WhereOperationType.between:
+          return 'BETWEEN';
+        case WhereOperationType.inList:
+          return 'IN';
+        case WhereOperationType.isNull:
+          return 'IS NULL';
+        case WhereOperationType.isNotNull:
+          return 'IS NOT NULL';
+      }
+    }
+    throw databaseFamilyNotSupportedYet();
+  }
+
+  const WhereOperationType([
     this.canUseValue = true,
   ]);
 }

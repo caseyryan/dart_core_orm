@@ -3,6 +3,10 @@ import 'package:postgres/postgres.dart' as psql;
 Orm? _orm;
 Orm get orm => _orm!;
 
+Exception databaseFamilyNotSupportedYet() {
+  return Exception('${orm.family} is not supported yet');
+}
+
 class Orm {
   Orm._({
     required this.host,

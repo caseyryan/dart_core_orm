@@ -8,24 +8,24 @@ import 'package:reflect_buddy/reflect_buddy.dart';
 /// database column name will also be snake cased
 @CamelToSnake()
 class Car {
-  @PrimaryKeyColumn()
-  @NotNullColumn()
-  @UniqueColumn(autoIncrement: true)
+  @ORMPrimaryKeyColumn()
+  @ORMNotNullColumn()
+  @ORMUniqueColumn(autoIncrement: true)
   int? id;
 
-  @LimitColumn(limit: 20)
+  @ORMLimitColumn(limit: 20)
   String? manufacturer;
 
   /// don't let the car be more powerful than 300 horsepower)
-  @LimitColumn(limit: 300)
+  @ORMLimitColumn(limit: 300)
   int? enginePower;
 }
 
 @CamelToSnake()
 class Book {
-  @PrimaryKeyColumn()
-  @NotNullColumn()
-  @UniqueColumn(autoIncrement: true)
+  @ORMPrimaryKeyColumn()
+  @ORMNotNullColumn()
+  @ORMUniqueColumn(autoIncrement: true)
   int? id;
 
   String? title;
@@ -37,7 +37,7 @@ class Book {
   /// a simple query to a transaction (where it's possible, not any database supports it)
   /// to make sure everything is inserted correctly
   /// before inserting the main model
-  @ForeignKeyColumn(
+  @ORMForeignKeyColumn(
     foreignKey: 'id', // turns `author` to `author_id` in this case
     referenceTableType: Author,
     cascade: true,
@@ -47,9 +47,9 @@ class Book {
 
 @CamelToSnake()
 class Author {
-  @PrimaryKeyColumn()
-  @NotNullColumn()
-  @UniqueColumn(autoIncrement: true)
+  @ORMPrimaryKeyColumn()
+  @ORMNotNullColumn()
+  @ORMUniqueColumn(autoIncrement: true)
   int? id;
 
   String? firstName;
@@ -57,10 +57,10 @@ class Author {
 }
 
 class Reader {
-  @DefaultId()
+  @ORMDefaultId()
   int? id;
 
-  @NotNullColumn(defaultValue: 'John Doe')
+  @ORMNotNullColumn(defaultValue: 'John Doe')
   String? fullName;
 }
 
@@ -82,15 +82,15 @@ class User extends BaseModel {
   /// enum converter is important here, because 
   /// PostgreSQL Dart driver doesn't understand ARRAY[]
   /// and returns it as UndecodedBytes
-  @EnumConverter()
+  @ORMEnumConverter()
   List<Role>? roles;
   
   @NameValidator(canBeNull: true)
-  @LimitColumn(limit: 60)
+  @ORMLimitColumn(limit: 60)
   String? firstName;
 
   @NameValidator(canBeNull: true)
-  @LimitColumn(limit: 60)
+  @ORMLimitColumn(limit: 60)
   String? lastName;
 
   String getFullName() {
@@ -100,26 +100,26 @@ class User extends BaseModel {
   @EmailValidator(
     canBeNull: true,
   )
-  @UniqueColumn()
-  @LimitColumn(limit: 60)
+  @ORMUniqueColumn()
+  @ORMLimitColumn(limit: 60)
   String? email;
 
   @PhoneValidator(
     canBeNull: true,
   )
-  @UniqueColumn()
-  @LimitColumn(limit: 20)
+  @ORMUniqueColumn()
+  @ORMLimitColumn(limit: 20)
   String? phone;
 
   // @JsonIgnore(ignoreDirections: [
   //   SerializationDirection.toJson,
   // ])
-  @LimitColumn(limit: 46)
+  @ORMLimitColumn(limit: 46)
   String? passwordHash;
 
   @JsonTrimString()
   @NameValidator(canBeNull: true)
-  @LimitColumn(limit: 60)
+  @ORMLimitColumn(limit: 60)
   String? middleName;
 
   @JsonTrimString()
@@ -129,9 +129,9 @@ class User extends BaseModel {
   @JsonDateConverter(
     dateFormat: 'yyyy-MM-dd',
   )
-  @DateColumn(
-    dateType: DateType.date,
-    defaultValue: DateTimeDefaultValue.empty,
+  @ORMDateColumn(
+    dateType: ORMDateType.date,
+    defaultValue: ORMDateTimeDefaultValue.empty,
   )
   DateTime? birthDate;
 
@@ -147,21 +147,21 @@ class User extends BaseModel {
 }
 
 class BaseModel {
-  @DefaultId()
+  @ORMDefaultId()
   int? id;
 
-  @DateColumn(
-    defaultValue: DateTimeDefaultValue.currentTimestamp,
-    dateType: DateType.timestamp,
+  @ORMDateColumn(
+    defaultValue: ORMDateTimeDefaultValue.currentTimestamp,
+    dateType: ORMDateType.timestamp,
   )
   DateTime? createdAt;
 
-  @DateColumn(
-    defaultValue: DateTimeDefaultValue.currentTimestamp,
-    dateType: DateType.timestamp,
+  @ORMDateColumn(
+    defaultValue: ORMDateTimeDefaultValue.currentTimestamp,
+    dateType: ORMDateType.timestamp,
   )
   DateTime? updatedAt;
 
-  @NotNullColumn(defaultValue: false)
+  @ORMNotNullColumn(defaultValue: false)
   bool? isDeleted;
 }

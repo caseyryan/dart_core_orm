@@ -17,7 +17,7 @@ class InsertQueries {
 
 class ForeignKeyedField {
   final Object object;
-  final ForeignKeyColumn foreignKeyColumn;
+  final ORMForeignKeyColumn foreignKeyColumn;
   final String fieldName;
 
   ForeignKeyedField({
@@ -64,7 +64,7 @@ extension ObjectExtensions on Object {
         continue;
       }
       final foreignKeyAnnotation = (kv.value as VariableMirror)
-          .getAnnotationsOfType<ForeignKeyColumn>()
+          .getAnnotationsOfType<ORMForeignKeyColumn>()
           .lastOrNull;
       if (foreignKeyAnnotation == null) {
         continue;
@@ -228,15 +228,18 @@ extension ObjectExtensions on Object {
   /// try update or insert one record
   Future<QueryResult<T>> tryUpsertOne<T>({
     bool dryRun = false,
+    bool createTableIfNotExists = false,
   }) async {
     return tryInsertOne(
       conflictResolution: ConflictResolution.update,
+      createTableIfNotExists: createTableIfNotExists,
     );
   }
 
   Future<QueryResult<T>> tryInsertOne<T>({
     bool dryRun = false,
     required ConflictResolution conflictResolution,
+    bool createTableIfNotExists = false,
   }) async {
     final result = await insert(
       conflictResolution: conflictResolution,
@@ -250,6 +253,20 @@ extension ObjectExtensions on Object {
         error: null,
       );
     } else if (result is OrmError) {
+      if (result.isTableNotExists) {
+        if (createTableIfNotExists) {
+          if (await (T).createTable(
+            dryRun: dryRun,
+          )) {
+            return tryInsertOne<T>(
+              conflictResolution: conflictResolution,
+
+              /// no need to try creating table again if it failed for the first time
+              createTableIfNotExists: false,
+            );
+          }
+        }
+      }
       return QueryResult(
         value: null,
         error: result,
@@ -270,44 +287,57 @@ extension ObjectExtensions on Object {
   /// [T] can be a list of objects or a single object
   Future<QueryResult<T>> tryFind<T>({
     bool dryRun = false,
+    int? offset,
+    int? limit,
+    OrderByOperation? orderBy,
   }) async {
     if (orm.family == DatabaseFamily.postgres) {
       final json = toJson(
         includeNullValues: false,
       ) as Map<String, Object?>;
-      final equalsClause = <WhereOperation>[];
+      final whereClause = <WhereOperation>[];
       for (var kv in json.entries) {
-        equalsClause.add(
-          Equal(
+        whereClause.add(
+          WhereEqual(
             key: kv.key,
             value: kv.value,
             nextJoiner: Joiner.and,
           ),
         );
       }
-      if (equalsClause.isNotEmpty) {
-        final query = runtimeType.select().where(equalsClause);
-        final value = await query.execute(dryRun: dryRun);
-        if (value is List) {
-          if (T.isList) {
-            return QueryResult(
-              value: value as T,
-              error: null,
-            );
-          }
-          if (value.length == 1) {
-            return QueryResult(
-              value: value.first as T,
-              error: null,
-            );
-          }
-        } else if (value is OrmError) {
+
+      // if (whereClause.isNotEmpty) {
+      var query = runtimeType.select().where(whereClause);
+      if (offset != null && offset > 0) {
+        query = query.offset(offset);
+      }
+      if (limit != null && limit > 0) {
+        query = query.limit(limit);
+      }
+      if (orderBy != null) {
+        query = query.orderBy(orderBy);
+      }
+      final value = await query.execute(dryRun: dryRun);
+      if (value is List) {
+        if (T.isList) {
           return QueryResult(
-            value: null,
-            error: value,
+            value: value as T,
+            error: null,
           );
         }
+        if (value.length == 1) {
+          return QueryResult(
+            value: value.first as T,
+            error: null,
+          );
+        }
+      } else if (value is OrmError) {
+        return QueryResult(
+          value: null,
+          error: value,
+        );
       }
+      // }
     }
     return QueryResult(
       value: null,

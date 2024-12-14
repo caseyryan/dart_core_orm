@@ -38,21 +38,30 @@ Future main() async {
   // );
 
   // return;
-
-  // final user = User()
-  //   ..firstName = 'Sifon'
-  //   ..phone = '+79909090909'
-  //   ..isDeleted = false
-  //   ..birthDate = DateTime.now()
-  //   ..lastName = 'Pupkin'
-  //   ..roles = [Role.editor, Role.user]
-  //   ..email = 'sifa@dormoed.com';
+  final user = User();
+  // ..firstName = 'Sifon'
+  // ..phone = '+79909090909'
+  // ..isDeleted = false
+  // ..birthDate = DateTime.now()
+  // ..lastName = 'Pupkin'
+  // ..roles = [Role.editor, Role.user]
+  // ..email = 'sifa@dormoed.com';
   // final queryResult = await user.tryInsertOne<User>(
   //   dryRun: false,
   //   conflictResolution: ConflictResolution.update,
   // );
 
-  // final queryResult = await user.tryFind<User>();
+  final queryResult = await user.tryFind<User>(
+    limit: 1,
+    offset: 0,
+    orderBy: OrderByOperation(
+      byFieldNames: ['first_name'],
+      direction: OrderByDirection.asc,
+    ),
+    dryRun: false,
+  );
+  print(queryResult);
+  return;
   // print(queryResult.value);
 
   // final result = await user.insert().execute(
@@ -83,7 +92,7 @@ Future main() async {
   // }
 
   // await (User).createTable(dryRun: true);
-  insertManyUsers();
+  // insertManyUsers();
 }
 
 Future insertManyUsers() async {
@@ -111,8 +120,6 @@ Future insertManyUsers() async {
         returnResult: true,
       );
   print(result);
-
-
 }
 
 Future createTableWithDefaultId() async {
@@ -170,7 +177,7 @@ Future createTable() async {
 
 Future delete() async {
   final result = await (Car).delete().where([
-    Equal(
+    WhereEqual(
       key: 'id',
       value: 1,
     ),
@@ -183,12 +190,12 @@ Future delete() async {
 
 Future select() async {
   final result = await (Car).select().where([
-    Equal(
+    WhereEqual(
       key: 'id',
       value: 1,
       nextJoiner: Joiner.or,
     ),
-    Equal(
+    WhereEqual(
       key: 'manufacturer',
       value: 'Toyota',
     ),
@@ -212,12 +219,12 @@ Future update() async {
     ..manufacturer = 'Toyota'
     ..enginePower = 95;
   final result = await (Car).update(carUpdate).where([
-    Equal(
+    WhereEqual(
       key: 'id',
       value: 7,
       nextJoiner: Joiner.or,
     ),
-    Equal(
+    WhereEqual(
       key: 'manufacturer',
       value: 'Toyota',
     ),

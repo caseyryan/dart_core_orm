@@ -7,7 +7,10 @@ extension ClassMirrorExtensions on ClassMirror {
   /// [objectType] is the type of the object that is being queried
   /// for example Car, User etc. The type of your model
   List<FieldDescription> getFieldsDescription(Type objectType) {
-    final json = objectType.fromJson({});
+    final json = objectType.fromJson(
+      {},
+      useValidators: false,
+    );
     final convertedKeys = <String, String>{};
     json!.toJson(
       includeNullValues: true,
@@ -18,7 +21,8 @@ extension ClassMirrorExtensions on ClassMirror {
       },
     );
     Map<Symbol, DeclarationMirror> tempDeclarations = {};
-    /// Parent declarations will be included if the class 
+
+    /// Parent declarations will be included if the class
     /// has the [JsonIncludeParentFields] annotation from reflect_buddy
     /// this may come in handy when you want all base models have the same functionality
     final possibleParentDeclarations = includeParentDeclarationsIfNecessary();
@@ -39,7 +43,8 @@ extension ClassMirrorExtensions on ClassMirror {
       if (field.value is VariableMirror) {
         var name = field.key.toName();
         name = convertedKeys[name] ?? name;
-        final fieldDartType = (field.value as VariableMirror).type.reflectedType;
+        final fieldDartType =
+            (field.value as VariableMirror).type.reflectedType;
         fieldDescriptions.add(
           getFieldDescription(
             fieldName: name,

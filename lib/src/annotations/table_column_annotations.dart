@@ -1,7 +1,7 @@
 import 'package:dart_core_orm/dart_core_orm.dart';
 
-abstract class TableColumnAnnotation {
-  const TableColumnAnnotation();
+abstract class ORMTableColumnAnnotation {
+  const ORMTableColumnAnnotation();
 
   /// [alternativeParams] sometimes you might not be happy with
   /// what the ORM adds by default to the column description.
@@ -16,7 +16,7 @@ abstract class TableColumnAnnotation {
   int get order;
 }
 
-class ForeignKeyColumn extends TableColumnAnnotation {
+class ORMForeignKeyColumn extends ORMTableColumnAnnotation {
   /// the hame of the column in other table
   /// that this field is referencing
   /// e.g. you add a foreign key column to a table on an
@@ -32,7 +32,7 @@ class ForeignKeyColumn extends TableColumnAnnotation {
   /// See [foreignKey] field description for details
   final Type referenceTableType;
 
-  const ForeignKeyColumn({
+  const ORMForeignKeyColumn({
     required this.foreignKey,
     required this.referenceTableType,
     this.cascade = true,
@@ -59,8 +59,8 @@ class ForeignKeyColumn extends TableColumnAnnotation {
   int get order => 0;
 }
 
-class PrimaryKeyColumn extends TableColumnAnnotation {
-  const PrimaryKeyColumn();
+class ORMPrimaryKeyColumn extends ORMTableColumnAnnotation {
+  const ORMPrimaryKeyColumn();
 
   @override
   String getValueForType(
@@ -89,22 +89,22 @@ class PrimaryKeyColumn extends TableColumnAnnotation {
   }
 }
 
-enum DateType {
+enum ORMDateType {
   date,
   time,
   timestamp,
   timestampWithZone;
 
-  String toDatabaseType(DateTimeDefaultValue defaultValue,) {
+  String toDatabaseType(ORMDateTimeDefaultValue defaultValue,) {
     if (orm.family == DatabaseFamily.postgres) {
       switch (this) {
-        case DateType.date:
+        case ORMDateType.date:
           return 'DATE${defaultValue.toDatabaseType()}';
-        case DateType.time:
+        case ORMDateType.time:
           return 'TIME${defaultValue.toDatabaseType()}';
-        case DateType.timestamp:
+        case ORMDateType.timestamp:
           return 'TIMESTAMP WITHOUT TIME ZONE${defaultValue.toDatabaseType()}';
-        case DateType.timestampWithZone:
+        case ORMDateType.timestampWithZone:
           return 'TIMESTAMP WITH TIME ZONE${defaultValue.toDatabaseType()}';
       }
     }
@@ -112,7 +112,7 @@ enum DateType {
   }
 }
 
-enum DateTimeDefaultValue {
+enum ORMDateTimeDefaultValue {
   currentDate,
   currentTime,
   currentTimestamp,
@@ -122,15 +122,15 @@ enum DateTimeDefaultValue {
   String toDatabaseType() {
     if (orm.family  == DatabaseFamily.postgres) {
       switch (this) {
-        case DateTimeDefaultValue.currentDate:
+        case ORMDateTimeDefaultValue.currentDate:
           return ' DEFAULT CURRENT_DATE';
-        case DateTimeDefaultValue.currentTime:
+        case ORMDateTimeDefaultValue.currentTime:
           return ' DEFAULT CURRENT_TIME';
-        case DateTimeDefaultValue.currentTimestamp:
+        case ORMDateTimeDefaultValue.currentTimestamp:
           return ' DEFAULT CURRENT_TIMESTAMP';
-        case DateTimeDefaultValue.localTimestamp:
+        case ORMDateTimeDefaultValue.localTimestamp:
           return ' DEFAULT LOCALTIMESTAMP';
-        case DateTimeDefaultValue.empty:
+        case ORMDateTimeDefaultValue.empty:
           return '';
       }
     }
@@ -138,13 +138,13 @@ enum DateTimeDefaultValue {
   }
 }
 
-class DateColumn extends TableColumnAnnotation {
-  const DateColumn({
-    this.defaultValue = DateTimeDefaultValue.empty,
+class ORMDateColumn extends ORMTableColumnAnnotation {
+  const ORMDateColumn({
+    this.defaultValue = ORMDateTimeDefaultValue.empty,
     required this.dateType,
   });   
-  final DateTimeDefaultValue defaultValue; 
-  final DateType dateType;
+  final ORMDateTimeDefaultValue defaultValue; 
+  final ORMDateType dateType;
 
   @override
   String getValueForType(
@@ -173,8 +173,8 @@ class DateColumn extends TableColumnAnnotation {
 }
 
 
-class NotNullColumn extends TableColumnAnnotation {
-  const NotNullColumn({
+class ORMNotNullColumn extends ORMTableColumnAnnotation {
+  const ORMNotNullColumn({
     this.defaultValue,
   });
 
@@ -221,10 +221,10 @@ class NotNullColumn extends TableColumnAnnotation {
 }
 
 /// can limit strings and integers
-class LimitColumn extends TableColumnAnnotation {
+class ORMLimitColumn extends ORMTableColumnAnnotation {
   final int limit;
 
-  const LimitColumn({
+  const ORMLimitColumn({
     required this.limit,
   });
 
@@ -263,8 +263,8 @@ class LimitColumn extends TableColumnAnnotation {
 // @PrimaryKeyColumn()
 // @NotNullColumn()
 // @UniqueColumn(autoIncrement: true)
-class DefaultId extends TableColumnAnnotation {
-  const DefaultId();
+class ORMDefaultId extends ORMTableColumnAnnotation {
+  const ORMDefaultId();
 
   @override
   String getValueForType(
@@ -283,10 +283,10 @@ class DefaultId extends TableColumnAnnotation {
   }
 }
 
-class UniqueColumn extends TableColumnAnnotation {
+class ORMUniqueColumn extends ORMTableColumnAnnotation {
   final bool autoIncrement;
 
-  const UniqueColumn({
+  const ORMUniqueColumn({
     this.autoIncrement = false,
   });
 

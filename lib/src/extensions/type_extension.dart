@@ -1,11 +1,9 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'dart:convert';
 import 'dart:mirrors';
 
 import 'package:collection/collection.dart';
 import 'package:dart_core_orm/dart_core_orm.dart';
-import 'package:postgres/postgres.dart' as pgsl;
 import 'package:reflect_buddy/reflect_buddy.dart';
 
 part '_support_types.dart';
@@ -24,14 +22,14 @@ extension TypeExtension on Type {
   }
 
   String toDatabaseType(
-    List<TableColumnAnnotation> columnAnnotations,
+    List<ORMTableColumnAnnotation> columnAnnotations,
     String fieldName,
   ) {
     if (this == String) {
       if (orm.family == DatabaseFamily.postgres) {
         if (columnAnnotations.isNotEmpty) {
           final limitAnnotation = columnAnnotations.lastWhereOrNull(
-            (e) => e is LimitColumn,
+            (e) => e is ORMLimitColumn,
           );
           if (limitAnnotation != null) {
             return limitAnnotation.getValueForType(this, fieldName);
@@ -43,16 +41,16 @@ extension TypeExtension on Type {
     } else if (this == int) {
       if (orm.family == DatabaseFamily.postgres) {
         final limitAnnotation = columnAnnotations.lastWhereOrNull(
-          (e) => e is LimitColumn,
+          (e) => e is ORMLimitColumn,
         );
         if (limitAnnotation != null) {
           return limitAnnotation.getValueForType(this, fieldName);
         }
         final uniqueConstraint =
-            columnAnnotations.whereType<UniqueColumn>().firstOrNull;
+            columnAnnotations.whereType<ORMUniqueColumn>().firstOrNull;
         if (uniqueConstraint != null) {
           /// for SERIAL type we don't need any of these
-          columnAnnotations.removeWhere((e) => e is NotNullColumn);
+          columnAnnotations.removeWhere((e) => e is ORMNotNullColumn);
           if (uniqueConstraint.autoIncrement == true) {
             /// uniqueConstraint?.autoIncrement adds SERIAL pseudo type
             /// that is automatically creating an INTEGER wo we don't need to return integer
@@ -73,7 +71,7 @@ extension TypeExtension on Type {
     } else if (this == DateTime) {
       if (orm.family == DatabaseFamily.postgres) {
         final dateColumnAnnotation =
-            columnAnnotations.whereType<DateColumn>().firstOrNull;
+            columnAnnotations.whereType<ORMDateColumn>().firstOrNull;
         if (dateColumnAnnotation != null) {
           return '';
         }
@@ -222,6 +220,11 @@ extension TypeExtension on Type {
       //       (e) => e.hasUniqueConstraints,
       //     )
       //     .length;
+      createTriggerCode ??= createUpdatedAtTriggerCode(
+        tableName: toTableName(),
+        columnName: 'updated_at',
+      );
+
       bool createTrigger = createTriggerCode != null;
       query.add(')${createTrigger ? ';\n' : ''}');
       if (createTrigger) {
@@ -232,13 +235,13 @@ extension TypeExtension on Type {
           dryRun: dryRun,
           returnResult: true,
         );
-        return result is List && result.isEmpty;
+        return result == null || (result is List && result.isEmpty);
       } else {
         query.printQuery();
       }
       return false;
     }
-    throw Exception('${orm.family} is not supported yet');
+    throw databaseFamilyNotSupportedYet();
   }
 
   /// [update] is an instance of your model with the changed
@@ -339,7 +342,7 @@ extension TypeExtension on Type {
           );
           if (insertQueries != null) {
             if (i == 0) {
-            //   updateQuery = insertQueries.onConflicsQueries.first;
+              //   updateQuery = insertQueries.onConflicsQueries.first;
               values.write(insertQueries.keys);
               values.write(' VALUES ');
             }
@@ -476,14 +479,16 @@ class ChainedQuery {
   }
 
   bool get _allowsChaining {
-    switch (queryType) {
-      case 'SELECT':
-      case 'INSERT':
-      case 'UPDATE':
-      case 'DELETE':
-        return true;
-      case 'CREATE TABLE':
-        return false;
+    if (orm.family == DatabaseFamily.postgres) {
+      switch (queryType) {
+        case 'SELECT':
+        case 'INSERT':
+        case 'UPDATE':
+        case 'DELETE':
+          return true;
+        case 'CREATE TABLE':
+          return false;
+      }
     }
     return true;
   }
@@ -496,18 +501,51 @@ class ChainedQuery {
     if (operations.isEmpty) {
       return this;
     }
-    _checkIfChainingIsAllowed();
-    add('WHERE');
-    if (operations.length == 1) {
-      add(operations.first.toOperation());
-    } else if (operations.length > 1) {
-      for (var i = 0; i < operations.length; i++) {
-        final operation = operations[i];
-        add(operation.toOperation());
-        if (i != operations.length - 1) {
-          add(operation.nextJoiner.value);
+    if (orm.family == DatabaseFamily.postgres) {
+      _checkIfChainingIsAllowed();
+      add('WHERE');
+      if (operations.length == 1) {
+        add(operations.first.toOperation());
+      } else if (operations.length > 1) {
+        for (var i = 0; i < operations.length; i++) {
+          final operation = operations[i];
+          add(operation.toOperation());
+          if (i != operations.length - 1) {
+            add(operation.nextJoiner.toDatabaseOperation());
+          }
         }
       }
+    }
+    return this;
+  }
+
+  ChainedQuery offset(
+    int offset,
+  ) {
+    if (orm.family == DatabaseFamily.postgres) {
+      _checkIfChainingIsAllowed();
+      add('OFFSET $offset');
+    }
+    return this;
+  }
+
+  ChainedQuery limit(
+    int limit,
+  ) {
+    if (orm.family == DatabaseFamily.postgres) {
+      _checkIfChainingIsAllowed();
+      add('LIMIT $limit');
+    }
+    return this;
+  }
+
+  ChainedQuery orderBy(
+    OrderByOperation operation,
+  ) {
+    if (orm.family == DatabaseFamily.postgres) {
+      _checkIfChainingIsAllowed();
+
+      // _addOrderByOperations(operations);
     }
     return this;
   }
@@ -532,7 +570,10 @@ class ChainedQuery {
     final executeResult = await execute();
     if (executeResult is List) {
       return executeResult.map((e) {
-        return type!.fromJson(e);
+        return type!.fromJson(
+          e,
+          useValidators: false,
+        );
       }).toList();
     }
     return [];
@@ -581,7 +622,10 @@ class ChainedQuery {
           // var decodedRoles = utf8.decode(roles.bytes);
           // print(decodedRoles);
           successResult = result.map((e) {
-            return type!.fromJson(e);
+            return type!.fromJson(
+              e,
+              useValidators: false,
+            );
           }).toList();
           break;
         }
@@ -604,28 +648,28 @@ FieldDescription getFieldDescription({
   required Type fieldDartType,
   required List<InstanceMirror> metadata,
 }) {
-  List<TableColumnAnnotation> columnAnnotations = [];
+  List<ORMTableColumnAnnotation> columnAnnotations = [];
 
   if (metadata.isNotEmpty) {
     /// row annotations are required to apply adjusted data types
     /// instead of the evaluated based on the field type
     columnAnnotations.addAll(
       metadata.where((e) {
-        return e.reflectee is TableColumnAnnotation;
+        return e.reflectee is ORMTableColumnAnnotation;
       }).map((e) => e.reflectee),
     );
   }
 
   /// Any "syntactic sugar" for the field can be processed here
-  final indexOfDefaultId = columnAnnotations.indexWhere((e) => e is DefaultId);
+  final indexOfDefaultId = columnAnnotations.indexWhere((e) => e is ORMDefaultId);
   if (indexOfDefaultId != -1) {
     columnAnnotations.removeAt(indexOfDefaultId);
     columnAnnotations.insertAll(
       indexOfDefaultId,
       [
-        PrimaryKeyColumn(),
-        NotNullColumn(),
-        UniqueColumn(autoIncrement: true),
+        ORMPrimaryKeyColumn(),
+        ORMNotNullColumn(),
+        ORMUniqueColumn(autoIncrement: true),
       ],
     );
   }
@@ -634,12 +678,12 @@ FieldDescription getFieldDescription({
     fieldName,
   );
   final otherColumnAnnotations = columnAnnotations.where((e) {
-    return e is! LimitColumn;
+    return e is! ORMLimitColumn;
   }).toList();
   otherColumnAnnotations.sort((a, b) => a.order.compareTo(b.order));
 
   bool hasUniqueConstraints = otherColumnAnnotations
-      .any((e) => e is UniqueColumn || e is PrimaryKeyColumn);
+      .any((e) => e is ORMUniqueColumn || e is ORMPrimaryKeyColumn);
 
   final fieldDescription = FieldDescription(
     fieldName: fieldName,
@@ -648,12 +692,12 @@ FieldDescription getFieldDescription({
     dataTypes: [
       databaseType,
       ...otherColumnAnnotations.mapIndexed(
-        (int index, TableColumnAnnotation e) {
+        (int index, ORMTableColumnAnnotation e) {
           var value = e.getValueForType(
             fieldDartType,
             fieldName,
           );
-          if (e is ForeignKeyColumn) {
+          if (e is ORMForeignKeyColumn) {
             if (index > 0) {
               value = ', $value';
             }
