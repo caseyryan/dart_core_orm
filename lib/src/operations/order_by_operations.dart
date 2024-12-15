@@ -1,9 +1,9 @@
 import 'package:dart_core_orm/src/exports.dart';
 
-class OrderByOperation {
-  OrderByOperation({
+class ORMOrderByOperation {
+  ORMOrderByOperation({
     required this.byFieldNames,
-    this.direction = OrderByDirection.asc,
+    this.direction = ORMOrderByDirection.asc,
   }) : assert(
           byFieldNames.isNotEmpty,
           'You must provide at least one field to order by',
@@ -14,26 +14,26 @@ class OrderByOperation {
   /// it must contain at least one field to order by
   /// [direction] is used to specify the direction of the ordering
   final List<String> byFieldNames;
-  final OrderByDirection direction;
+  final ORMOrderByDirection direction;
 
   String toDatabaseOperation() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 'ORDER BY ${byFieldNames.join(', ')} ${direction.toDatabaseOperation()}';
     }
     throw databaseFamilyNotSupportedYet();
   }
 }
 
-enum OrderByDirection {
+enum ORMOrderByDirection {
   asc,
   desc;
 
   String toDatabaseOperation() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (this) {
-        case OrderByDirection.asc:
+        case ORMOrderByDirection.asc:
           return 'ASC';
-        case OrderByDirection.desc:
+        case ORMOrderByDirection.desc:
           return 'DESC';
       }
     }

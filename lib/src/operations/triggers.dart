@@ -10,7 +10,7 @@ String? createUpdatedAtTriggerCode({
 }) {
   columnName = columnName?.wrapInDoubleQuotesIfNeeded();
 
-  if (orm.family == DatabaseFamily.postgres) {
+  if (orm.family == ORMDatabaseFamily.postgres) {
     final triggerCode = '''
 \nCREATE OR REPLACE FUNCTION update_date_column()
 RETURNS TRIGGER AS

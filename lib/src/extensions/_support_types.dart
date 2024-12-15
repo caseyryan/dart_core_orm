@@ -12,10 +12,10 @@ class _SimpleTableScheme {
   });
 
   String toAlterTableQuery(Type type) {
-    final classReflection = reflectClass(type);
-    final fieldDescription = classReflection.getFieldsDescription(
-      type,
-    );
+    // final classReflection = reflectClass(type);
+    // final fieldDescription = classReflection.getFieldsDescription(
+    //   type,
+    // );
     
     return '';
   }

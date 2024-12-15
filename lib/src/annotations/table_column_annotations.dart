@@ -74,7 +74,7 @@ class ORMPrimaryKeyColumn extends ORMTableColumnAnnotation {
     if (type != int && type != String && type != bool && type != DateTime) {
       return '';
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 'PRIMARY KEY';
     }
     return '';
@@ -82,7 +82,7 @@ class ORMPrimaryKeyColumn extends ORMTableColumnAnnotation {
 
   @override
   int get order {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 10;
     }
     return 10;
@@ -95,8 +95,10 @@ enum ORMDateType {
   timestamp,
   timestampWithZone;
 
-  String toDatabaseType(ORMDateTimeDefaultValue defaultValue,) {
-    if (orm.family == DatabaseFamily.postgres) {
+  String toDatabaseType(
+    ORMDateTimeDefaultValue defaultValue,
+  ) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (this) {
         case ORMDateType.date:
           return 'DATE${defaultValue.toDatabaseType()}';
@@ -112,6 +114,50 @@ enum ORMDateType {
   }
 }
 
+enum ORMIntType {
+  integer,
+  smallInt,
+  bigInt;
+
+  const ORMIntType();
+
+  String toDatabaseType([int? defaultValue]) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
+      String type = ' BIGINT';
+      switch (this) {
+        case ORMIntType.integer:
+          if (defaultValue != null &&
+              (defaultValue < -2147483648 || defaultValue > 2147483647)) {
+            type = ' BIGINT ';
+          } else {
+            type = ' INTEGER ';
+          }
+          break;
+        case ORMIntType.smallInt:
+          if (defaultValue != null &&
+              (defaultValue < -32768 || defaultValue > 32767)) {
+            if ((defaultValue < -2147483648 || defaultValue > 2147483647)) {
+              type = ' BIGINT';
+            } else {
+              type = ' INTEGER';
+            }
+          } else {
+            type = ' SMALLINT';
+          }
+          break;
+        case ORMIntType.bigInt:
+          type = ' BIGINT';
+          break;
+      }
+      if (defaultValue != null) {
+        return '$type DEFAULT $defaultValue';
+      }
+      return type;
+    }
+    throw Exception('${orm.family} is not supported');
+  }
+}
+
 enum ORMDateTimeDefaultValue {
   currentDate,
   currentTime,
@@ -120,7 +166,7 @@ enum ORMDateTimeDefaultValue {
   empty;
 
   String toDatabaseType() {
-    if (orm.family  == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (this) {
         case ORMDateTimeDefaultValue.currentDate:
           return ' DEFAULT CURRENT_DATE';
@@ -142,8 +188,8 @@ class ORMDateColumn extends ORMTableColumnAnnotation {
   const ORMDateColumn({
     this.defaultValue = ORMDateTimeDefaultValue.empty,
     required this.dateType,
-  });   
-  final ORMDateTimeDefaultValue defaultValue; 
+  });
+  final ORMDateTimeDefaultValue defaultValue;
   final ORMDateType dateType;
 
   @override
@@ -153,25 +199,26 @@ class ORMDateColumn extends ORMTableColumnAnnotation {
     String? alternativeParams,
   }) {
     if (type != DateTime) {
-      throw Exception('`DateColumn` can be used with `DateTime` type only. [$type] is not supported');
+      throw Exception(
+          '`DateColumn` can be used with `DateTime` type only. [$type] is not supported');
     }
     if (alternativeParams != null) {
       return alternativeParams;
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return dateType.toDatabaseType(defaultValue);
     }
     return '';
-  } 
+  }
+
   @override
   int get order {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 0;
     }
     return 0;
   }
 }
-
 
 class ORMNotNullColumn extends ORMTableColumnAnnotation {
   const ORMNotNullColumn({
@@ -189,20 +236,19 @@ class ORMNotNullColumn extends ORMTableColumnAnnotation {
     if (alternativeParams != null) {
       return alternativeParams;
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (type == DateTime) {
-        print('You used `NotNullColumn` on a `DateTime` field in $type. To have more flexibility use `DateColumn` anotation instead');
+        print(
+            'You used `NotNullColumn` on a `DateTime` field in $type. To have more flexibility use `DateColumn` anotation instead');
         return ' TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP';
       }
       var defaultsTo = '';
       if (defaultValue != null) {
         if (defaultValue is String) {
           defaultsTo = " DEFAULT '$defaultValue'";
-        } 
-        else if (defaultValue is bool) {
+        } else if (defaultValue is bool) {
           defaultsTo = " DEFAULT ${defaultValue.toString().toUpperCase()}";
-        }
-        else {
+        } else {
           defaultsTo = ' DEFAULT $defaultValue';
         }
       }
@@ -213,8 +259,76 @@ class ORMNotNullColumn extends ORMTableColumnAnnotation {
 
   @override
   int get order {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 0;
+    }
+    return 0;
+  }
+}
+
+class ORMStringColumn extends ORMLimitColumn {
+  const ORMStringColumn({
+    required super.limit,
+  });
+
+  @override
+  String getValueForType(
+    Type type,
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    if (orm.family == ORMDatabaseFamily.postgres) {
+      if (type == String) {
+        return 'VARCHAR($limit)';
+      }
+    }
+    return 'TEXT';
+  }
+
+  @override
+  int get order {
+    if (orm.family == ORMDatabaseFamily.postgres) {
+      return 1;
+    }
+    return 0;
+  }
+}
+
+class ORMIntColumn extends ORMLimitColumn {
+  final ORMIntType intType;
+  final int? defaultValue;
+
+  const ORMIntColumn({
+    super.limit = -1,
+    required this.intType,
+    this.defaultValue,
+  });
+
+  @override
+  String getValueForType(
+    Type type,
+    String fieldName, {
+    String? alternativeParams,
+  }) {
+    if (alternativeParams != null) {
+      return alternativeParams;
+    }
+    final dbType = intType.toDatabaseType(defaultValue);
+    if (orm.family == ORMDatabaseFamily.postgres) {
+      if (limit != -1) {
+        return '$dbType CHECK ($fieldName <= $limit)';
+      }
+    }
+    return dbType;
+  }
+
+  @override
+  int get order {
+    if (orm.family == ORMDatabaseFamily.postgres) {
+      return 1;
     }
     return 0;
   }
@@ -237,11 +351,17 @@ class ORMLimitColumn extends ORMTableColumnAnnotation {
     if (alternativeParams != null) {
       return alternativeParams;
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (type == String) {
+        if (limit == -1) {
+          return 'TEXT';
+        }
         return 'VARCHAR($limit)';
       }
       if (type == int) {
+        if (limit == -1) {
+          return 'BIGINT';
+        }
         return 'INTEGER CHECK ($fieldName <= $limit)';
       }
     }
@@ -250,7 +370,7 @@ class ORMLimitColumn extends ORMTableColumnAnnotation {
 
   @override
   int get order {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 1;
     }
     return 0;
@@ -299,7 +419,7 @@ class ORMUniqueColumn extends ORMTableColumnAnnotation {
     if (alternativeParams != null) {
       return alternativeParams;
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (autoIncrement && type == int) {
         return 'SERIAL';
       }
@@ -310,7 +430,7 @@ class ORMUniqueColumn extends ORMTableColumnAnnotation {
 
   @override
   int get order {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       return 0;
     }
     return 0;

@@ -13,7 +13,7 @@ Future main() async {
     username: 'default_db_user',
     password: 'default_pwd',
     host: 'localhost',
-    family: DatabaseFamily.postgres,
+    family: ORMDatabaseFamily.postgres,
     isSecureConnection: false,
     printQueries: true,
     port: 5455,
@@ -54,9 +54,9 @@ Future main() async {
   final queryResult = await user.tryFind<User>(
     limit: 1,
     offset: 0,
-    orderBy: OrderByOperation(
+    orderBy: ORMOrderByOperation(
       byFieldNames: ['first_name'],
-      direction: OrderByDirection.asc,
+      direction: ORMOrderByDirection.asc,
     ),
     dryRun: false,
   );
@@ -177,7 +177,7 @@ Future createTable() async {
 
 Future delete() async {
   final result = await (Car).delete().where([
-    WhereEqual(
+    ORMWhereEqual(
       key: 'id',
       value: 1,
     ),
@@ -190,12 +190,12 @@ Future delete() async {
 
 Future select() async {
   final result = await (Car).select().where([
-    WhereEqual(
+    ORMWhereEqual(
       key: 'id',
       value: 1,
-      nextJoiner: Joiner.or,
+      nextJoiner: ORMJoiner.or,
     ),
-    WhereEqual(
+    ORMWhereEqual(
       key: 'manufacturer',
       value: 'Toyota',
     ),
@@ -219,12 +219,12 @@ Future update() async {
     ..manufacturer = 'Toyota'
     ..enginePower = 95;
   final result = await (Car).update(carUpdate).where([
-    WhereEqual(
+    ORMWhereEqual(
       key: 'id',
       value: 7,
-      nextJoiner: Joiner.or,
+      nextJoiner: ORMJoiner.or,
     ),
-    WhereEqual(
+    ORMWhereEqual(
       key: 'manufacturer',
       value: 'Toyota',
     ),

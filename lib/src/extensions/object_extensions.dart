@@ -29,7 +29,7 @@ class ForeignKeyedField {
 
 extension ObjectExtensions on Object {
   Object? tryConvertValueToDatabaseCompatible() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (this is String) {
         final str = (this as String).sanitize();
         if (str.startsWith("'") && str.endsWith("'")) {
@@ -41,6 +41,7 @@ extension ObjectExtensions on Object {
       } else if (this is List) {
         print(this);
       }
+      return this;
     }
     throw 'Other types are not supported yet';
   }
@@ -132,7 +133,7 @@ extension ObjectExtensions on Object {
       return null;
     }
     final type = object is Type ? object : object.runtimeType;
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       final json = toJson(
         includeNullValues: false,
       ) as Map;
@@ -289,19 +290,19 @@ extension ObjectExtensions on Object {
     bool dryRun = false,
     int? offset,
     int? limit,
-    OrderByOperation? orderBy,
+    ORMOrderByOperation? orderBy,
   }) async {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       final json = toJson(
         includeNullValues: false,
       ) as Map<String, Object?>;
-      final whereClause = <WhereOperation>[];
+      final whereClause = <ORMWhereOperation>[];
       for (var kv in json.entries) {
         whereClause.add(
-          WhereEqual(
+          ORMWhereEqual(
             key: kv.key,
             value: kv.value,
-            nextJoiner: Joiner.and,
+            nextJoiner: ORMJoiner.and,
           ),
         );
       }
@@ -353,7 +354,7 @@ extension ObjectExtensions on Object {
   }) {
     final query = ChainedQuery()..type = runtimeType;
     final tableName = runtimeType.toTableName();
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       // query.add('INSERT INTO $tableName');
       final InsertQueries? valueKeys = toInsertQueries(
         query.type!,

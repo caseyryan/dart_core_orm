@@ -26,7 +26,7 @@ extension TypeExtension on Type {
     String fieldName,
   ) {
     if (this == String) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         if (columnAnnotations.isNotEmpty) {
           final limitAnnotation = columnAnnotations.lastWhereOrNull(
             (e) => e is ORMLimitColumn,
@@ -35,11 +35,10 @@ extension TypeExtension on Type {
             return limitAnnotation.getValueForType(this, fieldName);
           }
         }
-
-        return 'TEXT';
+        return '';
       }
     } else if (this == int) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         final limitAnnotation = columnAnnotations.lastWhereOrNull(
           (e) => e is ORMLimitColumn,
         );
@@ -61,15 +60,15 @@ extension TypeExtension on Type {
         return 'INTEGER';
       }
     } else if (this == bool) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         return 'BOOLEAN';
       }
     } else if (this == double || this == num) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         return 'DECIMAL';
       }
     } else if (this == DateTime) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         final dateColumnAnnotation =
             columnAnnotations.whereType<ORMDateColumn>().firstOrNull;
         if (dateColumnAnnotation != null) {
@@ -78,7 +77,7 @@ extension TypeExtension on Type {
         return 'TIMESTAMP WITH TIME ZONE';
       }
     } else if (isList) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         final reflection = reflectType(this);
         final reflectionClassMirror = (reflection as ClassMirror);
         if (reflectionClassMirror.isGeneric) {
@@ -118,7 +117,7 @@ extension TypeExtension on Type {
   }) async {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (ifExists) {
         query.add('DROP TABLE IF EXISTS $tableName');
       } else {
@@ -156,7 +155,7 @@ extension TypeExtension on Type {
     bool dryRun = false,
     String? oldTableName,
   }) async {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       /// for some reason if a table was created with double quotes
       /// it won't work with this request
       final tableName =
@@ -194,7 +193,7 @@ extension TypeExtension on Type {
     final tableName = toTableName();
     final typeMirror = reflectType(query.type!);
     final classMirror = typeMirror as ClassMirror;
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       query.add('CREATE TABLE');
       if (ifNotExists) {
         query.add('IF NOT EXISTS');
@@ -269,7 +268,7 @@ extension TypeExtension on Type {
   ChainedQuery update<T>(T update) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       query.add('UPDATE $tableName');
       final json = (update as Object).toJson(
         includeNullValues: false,
@@ -292,7 +291,7 @@ extension TypeExtension on Type {
     final tableName = toTableName();
     final values = StringBuffer();
     String? updateQuery;
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       bool hasForeignKeys = false;
       for (var i = 0; i < inserts.length; i++) {
         final item = inserts[i] as Object;
@@ -370,7 +369,7 @@ extension TypeExtension on Type {
   ]) {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       query.add('SELECT');
       if (paramsNames?.isNotEmpty != true) {
         query.add('*');
@@ -385,7 +384,7 @@ extension TypeExtension on Type {
   ChainedQuery delete() {
     final query = _toChainedQuery();
     final tableName = toTableName();
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       query.add('DELETE FROM $tableName');
     }
     return query;
@@ -479,7 +478,7 @@ class ChainedQuery {
   }
 
   bool get _allowsChaining {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (queryType) {
         case 'SELECT':
         case 'INSERT':
@@ -497,11 +496,11 @@ class ChainedQuery {
   //   return queryType == 'DELETE';
   // }
 
-  ChainedQuery where(List<WhereOperation> operations) {
+  ChainedQuery where(List<ORMWhereOperation> operations) {
     if (operations.isEmpty) {
       return this;
     }
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       _checkIfChainingIsAllowed();
       add('WHERE');
       if (operations.length == 1) {
@@ -522,7 +521,7 @@ class ChainedQuery {
   ChainedQuery offset(
     int offset,
   ) {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       _checkIfChainingIsAllowed();
       add('OFFSET $offset');
     }
@@ -532,7 +531,7 @@ class ChainedQuery {
   ChainedQuery limit(
     int limit,
   ) {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       _checkIfChainingIsAllowed();
       add('LIMIT $limit');
     }
@@ -540,9 +539,9 @@ class ChainedQuery {
   }
 
   ChainedQuery orderBy(
-    OrderByOperation operation,
+    ORMOrderByOperation operation,
   ) {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       _checkIfChainingIsAllowed();
 
       // _addOrderByOperations(operations);
@@ -677,6 +676,7 @@ FieldDescription getFieldDescription({
     columnAnnotations,
     fieldName,
   );
+  print(databaseType);
   final otherColumnAnnotations = columnAnnotations.where((e) {
     return e is! ORMLimitColumn;
   }).toList();

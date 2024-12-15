@@ -19,7 +19,7 @@ class Orm {
     required this.useCaseSensitiveNames,
     this.port = 5432,
   }) {
-    if (family == DatabaseFamily.postgres) {
+    if (family == ORMDatabaseFamily.postgres) {
       _endpoint = psql.Endpoint(
         host: host,
         database: database,
@@ -41,7 +41,7 @@ class Orm {
     required String password,
     required String username,
     int port = 5432,
-    required DatabaseFamily family,
+    required ORMDatabaseFamily family,
     required bool isSecureConnection,
     required bool useCaseSensitiveNames,
     bool printQueries = false,
@@ -64,7 +64,7 @@ class Orm {
   final String database;
   final String password;
   final String username;
-  final DatabaseFamily family;
+  final ORMDatabaseFamily family;
   final bool isSecureConnection;
   /// [useCaseSensitiveNames] in some databases like PostgreSQL
   /// the names of tables and columns are lowercase by default. 
@@ -92,7 +92,7 @@ class Orm {
     bool dryRun = false,
     Duration? timeout,
   }) async {
-    if (family == DatabaseFamily.postgres) {
+    if (family == ORMDatabaseFamily.postgres) {
       /// is the table exists it will generate an error but it can be ignored
       await executeSimpleQuery(
         query: 'CREATE DATABASE $database;',
@@ -107,7 +107,7 @@ class Orm {
     Duration? timeout,
     bool dryRun = false,
   }) async {
-    if (family == DatabaseFamily.postgres) {
+    if (family == ORMDatabaseFamily.postgres) {
       psql.Connection? conn;
       try {
         if (orm.printQueries == true) {
@@ -175,7 +175,7 @@ class Orm {
   }
 }
 
-enum DatabaseFamily {
+enum ORMDatabaseFamily {
   postgres,
 }
 

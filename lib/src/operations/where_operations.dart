@@ -5,80 +5,80 @@ import 'package:dart_core_orm/dart_core_orm.dart';
 
 // TODO: add OR concatination
 
-class WhereEqual extends WhereOperation {
-  WhereEqual({
+class ORMWhereEqual extends ORMWhereOperation {
+  ORMWhereEqual({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.equal,
+          operation: ORMWhereOperationType.equal,
         );
 }
 
 
-class WhereNotEqual extends WhereOperation {
-  WhereNotEqual({
+class ORMWhereNotEqual extends ORMWhereOperation {
+  ORMWhereNotEqual({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.notEqual,
+          operation: ORMWhereOperationType.notEqual,
         );
 }
 
-class WhereGreaterThan extends WhereOperation {
-  WhereGreaterThan({
+class ORMWhereGreaterThan extends ORMWhereOperation {
+  ORMWhereGreaterThan({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.greater,
+          operation: ORMWhereOperationType.greater,
         );
 }
 
-class WhereLessThan extends WhereOperation {
-  WhereLessThan({
+class ORMWhereLessThan extends ORMWhereOperation {
+  ORMWhereLessThan({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.less,
+          operation: ORMWhereOperationType.less,
         );
 }
 
-class WhereGreaterThanOrEqual extends WhereOperation {
-  WhereGreaterThanOrEqual({
+class ORMWhereGreaterThanOrEqual extends ORMWhereOperation {
+  ORMWhereGreaterThanOrEqual({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.greaterOrEqual,
+          operation: ORMWhereOperationType.greaterOrEqual,
         );
 }
 
-class WhereLessThanOrEqual extends WhereOperation {
-  WhereLessThanOrEqual({
+class ORMWhereLessThanOrEqual extends ORMWhereOperation {
+  ORMWhereLessThanOrEqual({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.lessOrEqual,
+          operation: ORMWhereOperationType.lessOrEqual,
         );
 }
 
-class WhereInList extends WhereOperation {
-  WhereInList({
+class ORMWhereInList extends ORMWhereOperation {
+  ORMWhereInList({
     required super.key,
     required List<Object?> value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.inList,
+          operation: ORMWhereOperationType.inList,
           value: value,
         );
 }
 
-class WhereBetween extends WhereOperation {
-  WhereBetween({
+class ORMWhereBetween extends ORMWhereOperation {
+  ORMWhereBetween({
     required super.key,
     required List<Object> value,
   })  : assert(
@@ -86,24 +86,24 @@ class WhereBetween extends WhereOperation {
           'Between operation requires two values',
         ),
         super(
-          operation: WhereOperationType.between,
+          operation: ORMWhereOperationType.between,
           value: value,
-          nextJoiner: Joiner.and,
+          nextJoiner: ORMJoiner.and,
         );
 }
 
-class WhereLike extends WhereOperation {
-  WhereLike({
+class ORMWhereLike extends ORMWhereOperation {
+  ORMWhereLike({
     required super.key,
     required super.value,
-    super.nextJoiner = Joiner.and,
+    super.nextJoiner = ORMJoiner.and,
   }) : super(
-          operation: WhereOperationType.like,
+          operation: ORMWhereOperationType.like,
         );
 }
 
-abstract class WhereOperation {
-  WhereOperation({
+abstract class ORMWhereOperation {
+  ORMWhereOperation({
     required String key,
     this.value,
     required this.operation,
@@ -115,15 +115,15 @@ abstract class WhereOperation {
 
   /// the value to compare with
   final Object? value;
-  final WhereOperationType operation;
+  final ORMWhereOperationType operation;
 
   /// [nextJoiner] is used to specify how to join the operations
   /// e.g. if you want to use OR instead of AND
   /// it will have effect if you provide more than one operation
-  final Joiner nextJoiner;
+  final ORMJoiner nextJoiner;
 
   String toOperation() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       Object? valueRepresentation;
 
       /// Som operations like IS NULL, IS NOT NULL
@@ -131,7 +131,7 @@ abstract class WhereOperation {
       if (operation.canUseValue) {
         if (value is List) {
           final list = value as List;
-          if (operation == WhereOperationType.between) {
+          if (operation == ORMWhereOperationType.between) {
             return '$key ${operation.toDatabaseWhereOperation()} ${list.first} AND ${list.last}';
           }
           valueRepresentation = list.map((e) {
@@ -155,18 +155,18 @@ abstract class WhereOperation {
   }
 }
 
-enum Joiner {
+enum ORMJoiner {
   and,
   or;
 
-  const Joiner();
+  const ORMJoiner();
 
   String toDatabaseOperation() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (this) {
-        case Joiner.and:
+        case ORMJoiner.and:
           return 'AND';
-        case Joiner.or:
+        case ORMJoiner.or:
           return 'OR';
       }
     }
@@ -174,7 +174,7 @@ enum Joiner {
   }
 }
 
-enum WhereOperationType {
+enum ORMWhereOperationType {
   equal,
   notEqual,
   less,
@@ -191,38 +191,38 @@ enum WhereOperationType {
   final bool canUseValue;
 
   String toDatabaseWhereOperation() {
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       switch (this) {
-        case WhereOperationType.all:
+        case ORMWhereOperationType.all:
           return '*';
-        case WhereOperationType.equal:
+        case ORMWhereOperationType.equal:
           return '=';
-        case WhereOperationType.notEqual:
+        case ORMWhereOperationType.notEqual:
           return '!=';
-        case WhereOperationType.less:
+        case ORMWhereOperationType.less:
           return '<';
-        case WhereOperationType.greater:
+        case ORMWhereOperationType.greater:
           return '>';
-        case WhereOperationType.lessOrEqual:
+        case ORMWhereOperationType.lessOrEqual:
           return '<=';
-        case WhereOperationType.greaterOrEqual:
+        case ORMWhereOperationType.greaterOrEqual:
           return '>=';
-        case WhereOperationType.like:
+        case ORMWhereOperationType.like:
           return 'LIKE';
-        case WhereOperationType.between:
+        case ORMWhereOperationType.between:
           return 'BETWEEN';
-        case WhereOperationType.inList:
+        case ORMWhereOperationType.inList:
           return 'IN';
-        case WhereOperationType.isNull:
+        case ORMWhereOperationType.isNull:
           return 'IS NULL';
-        case WhereOperationType.isNotNull:
+        case ORMWhereOperationType.isNotNull:
           return 'IS NOT NULL';
       }
     }
     throw databaseFamilyNotSupportedYet();
   }
 
-  const WhereOperationType([
+  const ORMWhereOperationType([
     this.canUseValue = true,
   ]);
 }

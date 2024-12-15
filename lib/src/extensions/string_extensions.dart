@@ -2,8 +2,8 @@ import 'package:dart_core_orm/src/orm.dart';
 
 extension StringExtensions on String {
   String sanitize() {
-    DatabaseFamily? family = orm.family;
-    if (family == DatabaseFamily.postgres) {
+    ORMDatabaseFamily? family = orm.family;
+    if (family == ORMDatabaseFamily.postgres) {
       final result = replaceAll(RegExp('[\']{1}'), "''");
       if (result.contains('Heart')) {
         print(result);
@@ -21,7 +21,7 @@ extension StringExtensions on String {
   /// This will make them case sensitive
   String wrapInDoubleQuotesIfNeeded() {
     if (orm.useCaseSensitiveNames) {
-      if (orm.family == DatabaseFamily.postgres) {
+      if (orm.family == ORMDatabaseFamily.postgres) {
         if (!startsWith('"') && !endsWith('"')) {
           return '"$this"';
         }
@@ -33,7 +33,7 @@ extension StringExtensions on String {
   /// sometimes it's necessary
   String stripWrappingDoubleQuotes() {
     var result = this;
-    if (orm.family == DatabaseFamily.postgres) {
+    if (orm.family == ORMDatabaseFamily.postgres) {
       if (startsWith('"') && endsWith('"') && length > 2) {
         result = substring(1, length - 1);
       }
