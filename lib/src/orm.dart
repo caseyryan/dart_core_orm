@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:postgres/postgres.dart' as psql;
 
 Orm? _orm;
@@ -144,7 +146,6 @@ class Orm {
           return list;
         }
       } on psql.ServerException catch (e) {
-        print(e);
         OrmErrorType? type;
         switch (e.code) {
           case '42P01':
@@ -163,7 +164,13 @@ class Orm {
           message: e.message,
           code: e.code,
         );
-      } catch (e) {
+      } 
+      on SocketException catch (e) {
+        return OrmError(
+          message: 'Database error: ${e.message}',
+        );
+      }
+      catch (e) {
         return OrmError(
           message: e.toString(),
         );

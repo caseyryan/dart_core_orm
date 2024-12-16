@@ -279,6 +279,20 @@ extension ObjectExtensions on Object {
     );
   }
 
+  /// Finds one record or throws an [OrmError] if nothing is found
+  /// This might come useful when you don't want to process errors separately
+  Future<T> findOne<T>({
+    bool dryRun = false,
+  }) async {
+    final queryResult = await tryFind<T>(
+      dryRun: dryRun,
+    );
+    if (queryResult.isError) {
+      throw queryResult.error!;
+    }
+    return queryResult.value!;
+  }
+
   /// A simple wrapper for SELECT using AND operations for all set fields
   /// If you need a more complicated query
   /// use runtimeType.select().where([...]) where you can
