@@ -197,7 +197,7 @@ extension ObjectExtensions on Object {
       String keysOnly =
           '(${keys.map((e) => e.wrapInDoubleQuotesIfNeeded()).join(', ')})';
 
-      final onConflicsQueries = <String>[];
+      final onConflictQueries = <String>[];
       if (uniqueColumns.isNotEmpty) {
         if (uniqueKeys.isNotEmpty) {
           /// creates update statement for each unuque key
@@ -213,14 +213,14 @@ extension ObjectExtensions on Object {
               nonUniqueStrings.add('  $nonUniqueKey = EXCLUDED.$nonUniqueKey');
             }
             parts.add(nonUniqueStrings.join(',\n'));
-            onConflicsQueries.add(parts.join(' '));
+            onConflictQueries.add(parts.join(' '));
           }
         }
       }
       return InsertQueries(
         values: valuesOnly,
         keys: keysOnly,
-        onConflicsQueries: onConflicsQueries,
+        onConflicsQueries: onConflictQueries,
       );
     }
     return null;
