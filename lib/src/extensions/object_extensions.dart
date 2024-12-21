@@ -6,12 +6,12 @@ import 'package:reflect_buddy/reflect_buddy.dart';
 class InsertQueries {
   final String values;
   final String keys;
-  final List<String> onConflicsQueries;
+  final List<String> onConflictQueries;
 
   InsertQueries({
     required this.values,
     required this.keys,
-    this.onConflicsQueries = const [],
+    this.onConflictQueries = const [],
   });
 }
 
@@ -220,7 +220,7 @@ extension ObjectExtensions on Object {
       return InsertQueries(
         values: valuesOnly,
         keys: keysOnly,
-        onConflicsQueries: onConflictQueries,
+        onConflictQueries: onConflictQueries,
       );
     }
     return null;
@@ -384,18 +384,18 @@ extension ObjectExtensions on Object {
       /// if we have more that one unique constraints in a table
       /// and we try to insert more than one column that might cause a conflict
       /// so we need to make a few update calls
-      for (var i = 0; i < valueKeys.onConflicsQueries.length; i++) {
+      for (var i = 0; i < valueKeys.onConflictQueries.length; i++) {
         accumulatedQueries.add('INSERT INTO $tableName');
         accumulatedQueries.add(valueString);
         if (conflictResolution == ConflictResolution.ignore) {
           accumulatedQueries.add(' ON CONFLICT DO NOTHING');
         } else if (conflictResolution == ConflictResolution.update) {
-          final conflicUpdates = valueKeys.onConflicsQueries[i];
-          accumulatedQueries.add(conflicUpdates);
+          final conflictUpdates = valueKeys.onConflictQueries[i];
+          accumulatedQueries.add(conflictUpdates);
         }
         accumulatedQueries.add('\nRETURNING *\n');
 
-        if (i < valueKeys.onConflicsQueries.length - 1) {
+        if (i < valueKeys.onConflictQueries.length - 1) {
           /// it's required to execute the query. It after splitting by delimiter
           /// there will be more that one query string, than we execute it until
           /// the first one complete successfully or until we run out of queries

@@ -327,7 +327,7 @@ extension TypeExtension on Type {
           tempQueries.add(
             'INSERT INTO $tableName ${insertQueries!.keys} VALUES ${insertQueries.values}',
           );
-          updateQuery = insertQueries.onConflicsQueries.first;
+          updateQuery = insertQueries.onConflictQueries.first;
           if (updateQuery.isNotEmpty == true) {
             tempQueries.add(updateQuery);
           }
@@ -401,8 +401,8 @@ extension TypeExtension on Type {
     bool plural = true,
   }) {
     final typeMirror = reflectType(this);
-
-    final metadata = reflectType(this).metadata;
+    final metadata = typeMirror.metadata;
+    
     final classAnnotations = metadata.where(
       (e) {
         return e.reflectee.runtimeType.isSubclassOf<ClassAnnotation>();
@@ -620,6 +620,7 @@ class ChainedQuery {
           // final roles = result.first['roles'] as pgsl.UndecodedBytes;
           // var decodedRoles = utf8.decode(roles.bytes);
           // print(decodedRoles);
+          alwaysIncludeParentFields = true;
           successResult = result.map((e) {
             return type!.fromJson(
               e,
